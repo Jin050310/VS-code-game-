@@ -2,15 +2,18 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>팔라독 스타일 디펜스</title>
+  <title>팔라독 스타일 디펜스 - 영웅의 전장</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- 1. 시작 화면 -->
   <div id="start-screen" class="screen">
-    <h1>⚔️ 영웅의 전장 ⚔️</h1>
-    <p>내 성을 지키고 적의 성을 파괴하세요!</p>
-    <button id="start-btn">게임 시작</button>
+    <div class="title-backdrop"></div>
+    <div class="title-content">
+      <h1>⚔️ 영웅의 전장 ⚔️</h1>
+      <p class="subtitle">성을 수호하고 적의 군단과 바이킹 보스를 격퇴하세요!</p>
+      <button id="start-btn">게임 시작</button>
+    </div>
   </div>
 
   <!-- 2. 영웅 선택 화면 -->
@@ -18,16 +21,30 @@
     <h2>영웅을 선택하세요</h2>
     <div class="hero-container">
       <div class="hero-card" data-hero="pantheon">
+        <div class="card-portrait">
+          <img src="hero_pantheon.png" alt="판테온">
+        </div>
         <h3>🔱 판테온</h3>
-        <p>강력한 근접 유닛 소환</p>
+        <p class="hero-role">근접 돌파형</p>
+        <p class="hero-desc">강인한 체력과 공격력을 가진 로마 중보병 부대를 지휘합니다.</p>
       </div>
+
       <div class="hero-card" data-hero="mage">
+        <div class="card-portrait">
+          <img src="hero_mage.png" alt="마법사">
+        </div>
         <h3>🔮 마법사</h3>
-        <p>광역 마법 유닛 소환</p>
+        <p class="hero-role">마법 원거리형</p>
+        <p class="hero-desc">신비로운 지팡이로 비전 마법을 구사하는 대마법사 부대를 소환합니다.</p>
       </div>
+
       <div class="hero-card" data-hero="archer">
+        <div class="card-portrait">
+          <img src="hero_archer.png" alt="궁수">
+        </div>
         <h3>🏹 궁수</h3>
-        <p>원거리 저격 유닛 소환</p>
+        <p class="hero-role">고속 저격형</p>
+        <p class="hero-desc">빠른 기동력과 긴 사거리로 적을 요격하는 엘프 저격수 부대를 통솔합니다.</p>
       </div>
     </div>
   </div>
@@ -38,23 +55,32 @@
     <div id="ui-top">
       <!-- 내 성 체력 -->
       <div class="castle-ui-left">
-        <span>내 성</span>
-        <div class="castle-hp-bar"><div id="player-castle-hp" style="width:100%; background:#3498db;"></div></div>
+        <span class="castle-label">🛡️ 아군 성채</span>
+        <div class="castle-hp-bar">
+          <div id="player-castle-hp" style="width:100%; background: linear-gradient(90deg, #2980b9, #27ae60);"></div>
+        </div>
       </div>
       
       <!-- 중앙 영웅 및 마나 -->
       <div id="center-ui">
-        <h2 id="hero-name">영웅</h2>
-        <div id="mana-container">
-          <div id="mana-bar"></div>
-          <span id="mana-text">마나: 0/100</span>
+        <div class="hero-info-badge">
+          <img id="hero-avatar" src="hero_pantheon.png" alt="영웅">
+          <div>
+            <h2 id="hero-name">소환사: 판테온</h2>
+            <div id="mana-container">
+              <div id="mana-bar"></div>
+              <span id="mana-text">마나: 0/100</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 적 성 체력 -->
       <div class="castle-ui-right">
-        <span>적 성</span>
-        <div class="castle-hp-bar"><div id="enemy-castle-hp" style="width:100%; background:#e74c3c;"></div></div>
+        <span class="castle-label">💀 적군 요새</span>
+        <div class="castle-hp-bar">
+          <div id="enemy-castle-hp" style="width:100%; background: linear-gradient(90deg, #c0392b, #e74c3c);"></div>
+        </div>
       </div>
     </div>
 
@@ -63,9 +89,21 @@
     <!-- 하단 UI -->
     <div id="ui-bottom">
       <div id="skill-panel">
-        <button class="summon-btn" data-type="minion1"><span class="cost">30</span> 유닛 1</button>
-        <button class="summon-btn" data-type="minion2"><span class="cost">50</span> 유닛 2</button>
-        <button class="summon-btn" data-type="minion3"><span class="cost">70</span> 유닛 3</button>
+        <button class="summon-btn" data-index="0">
+          <span class="cost">30</span>
+          <div class="summon-thumb"><img src="soldier.png" alt="유닛 1"></div>
+          <span class="unit-name">유닛 1</span>
+        </button>
+        <button class="summon-btn" data-index="1">
+          <span class="cost">50</span>
+          <div class="summon-thumb"><img src="soldier.png" alt="유닛 2"></div>
+          <span class="unit-name">유닛 2</span>
+        </button>
+        <button class="summon-btn" data-index="2">
+          <span class="cost">70</span>
+          <div class="summon-thumb"><img src="soldier.png" alt="유닛 3"></div>
+          <span class="unit-name">유닛 3</span>
+        </button>
       </div>
       <button id="restart-btn" style="display:none;">다시 시작</button>
     </div>
