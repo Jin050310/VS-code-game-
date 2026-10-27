@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>영웅 키우기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>영웅을 선택하세요</h1>
+
+  <div id="select">
+    <div class="hero-card" data-name="전사" data-hp="100" data-atk="15">
+      ⚔️ 전사<br>HP 100 / ATK 15
+    </div>
+    <div class="hero-card" data-name="마법사" data-hp="70" data-atk="25">
+      🔮 마법사<br>HP 70 / ATK 25
+    </div>
+    <div class="hero-card" data-name="궁수" data-hp="85" data-atk="20">
+      🏹 궁수<br>HP 85 / ATK 20
+    </div>
+  </div>
+
+  <div id="game" style="display:none;">
+    <h2 id="heroInfo"></h2>
+    <div class="enemy" id="enemy">👹</div>
+    <p id="enemyHp"></p>
+    <p id="log"></p>
+    <button id="attackBtn">공격!</button>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
