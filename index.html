@@ -34,37 +34,38 @@
 
   <!-- 3. 전투 화면 -->
   <div id="game-screen" style="display:none;">
-    <!-- 상단 UI -->
+    <!-- 상단 UI (성 체력 및 마나) -->
     <div id="ui-top">
-      <div id="hero-info">
+      <!-- 내 성 체력 -->
+      <div class="castle-ui-left">
+        <span>내 성</span>
+        <div class="castle-hp-bar"><div id="player-castle-hp" style="width:100%; background:#3498db;"></div></div>
+      </div>
+      
+      <!-- 중앙 영웅 및 마나 -->
+      <div id="center-ui">
         <h2 id="hero-name">영웅</h2>
         <div id="mana-container">
           <div id="mana-bar"></div>
           <span id="mana-text">마나: 0/100</span>
         </div>
       </div>
-      <!-- 적 성 체력 UI -->
-      <div id="enemy-castle-ui">
+
+      <!-- 적 성 체력 -->
+      <div class="castle-ui-right">
         <span>적 성</span>
-        <div class="castle-hp-bar"><div id="enemy-castle-hp"></div></div>
+        <div class="castle-hp-bar"><div id="enemy-castle-hp" style="width:100%; background:#e74c3c;"></div></div>
       </div>
     </div>
 
-    <!-- 전투 캔버스 -->
     <canvas id="game-canvas"></canvas>
 
     <!-- 하단 UI -->
     <div id="ui-bottom">
       <div id="skill-panel">
-        <button class="summon-btn" data-type="minion1">
-          <span class="cost">30</span> 유닛 1
-        </button>
-        <button class="summon-btn" data-type="minion2">
-          <span class="cost">50</span> 유닛 2
-        </button>
-        <button class="summon-btn" data-type="minion3">
-          <span class="cost">70</span> 유닛 3
-        </button>
+        <button class="summon-btn" data-type="minion1"><span class="cost">30</span> 유닛 1</button>
+        <button class="summon-btn" data-type="minion2"><span class="cost">50</span> 유닛 2</button>
+        <button class="summon-btn" data-type="minion3"><span class="cost">70</span> 유닛 3</button>
       </div>
       <button id="restart-btn" style="display:none;">다시 시작</button>
     </div>

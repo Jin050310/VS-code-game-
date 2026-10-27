@@ -1,53 +1,33 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Malgun Gothic', sans-serif;
-  background: #1a1a1a;
-  color: #fff;
-  overflow: hidden;
-  user-select: none;
-}
+body { font-family: 'Malgun Gothic', sans-serif; background: #1a1a1a; color: #fff; overflow: hidden; user-select: none; }
 
-/* 공통 화면 스타일 (여유로운 여백) */
 .screen {
   position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  background: radial-gradient(circle at center, #2a2a2a, #000);
-  z-index: 10;
-  padding-top: 5vh;
-  gap: 40px;
+  background: radial-gradient(circle at center, #2a2a2a, #000); z-index: 10; padding-top: 5vh; gap: 40px;
 }
-
-h1 { font-size: 4rem; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); letter-spacing: 2px; }
+h1 { font-size: 4rem; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.5); }
 h2 { font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px #000; }
 p { font-size: 1.2rem; color: #ccc; }
 
-/* 시작 버튼 */
 #start-btn {
   padding: 18px 50px; font-size: 24px; font-weight: bold;
   background: linear-gradient(to bottom, #e67e22, #d35400);
   color: #fff; border: 2px solid #f39c12; border-radius: 8px;
-  cursor: pointer; box-shadow: 0 8px #b35c14, 0 0 20px rgba(230, 126, 34, 0.5);
-  transition: 0.1s; margin-top: 20px;
+  cursor: pointer; box-shadow: 0 8px #b35c14; transition: 0.1s; margin-top: 20px;
 }
 #start-btn:active { transform: translateY(6px); box-shadow: 0 2px #b35c14; }
 
-/* 영웅 카드 */
 .hero-container { display: flex; gap: 30px; margin-top: 20px; }
 .hero-card {
-  width: 220px; padding: 30px 20px; 
-  background: linear-gradient(135deg, #333, #111);
+  width: 220px; padding: 30px 20px; background: linear-gradient(135deg, #333, #111);
   border: 2px solid #555; border-radius: 15px; text-align: center; cursor: pointer;
   transition: 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
 }
-.hero-card:hover { 
-  transform: translateY(-10px) scale(1.05); 
-  border-color: #f1c40f; 
-  box-shadow: 0 15px 40px rgba(241, 196, 15, 0.3);
-}
+.hero-card:hover { transform: translateY(-10px) scale(1.05); border-color: #f1c40f; box-shadow: 0 15px 40px rgba(241, 196, 15, 0.3); }
 .hero-card h3 { margin-bottom: 10px; font-size: 26px; color: #f1c40f; }
 .hero-card p { font-size: 14px; color: #aaa; }
 
-/* 게임 화면 */
 #game-screen { position: relative; width: 100vw; height: 100vh; background: #111; }
 #game-canvas { display: block; width: 100%; height: 100%; }
 
@@ -57,54 +37,37 @@ p { font-size: 1.2rem; color: #ccc; }
   display: flex; justify-content: space-between; align-items: flex-start;
   z-index: 5; pointer-events: none;
 }
-#hero-info { text-align: left; }
-#hero-info h2 { font-size: 20px; text-shadow: 1px 1px 3px #000; }
-
-#mana-container {
-  width: 300px; height: 25px; background: rgba(0,0,0,0.8);
-  border: 2px solid #555; border-radius: 15px; position: relative;
-  overflow: hidden; margin-top: 10px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
-}
-#mana-bar {
-  width: 0%; height: 100%; background: linear-gradient(90deg, #2980b9, #8e44ad);
-  box-shadow: 0 0 10px #8e44ad; transition: width 0.1s;
-}
-#mana-text {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 13px; font-weight: bold; text-shadow: 1px 1px 2px #000;
-}
-
-/* 적 성 UI */
-#enemy-castle-ui { text-align: right; font-size: 14px; font-weight: bold; }
+.castle-ui-left, .castle-ui-right { font-size: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+.castle-ui-right { text-align: right; }
 .castle-hp-bar { width: 200px; height: 15px; background: #333; border: 1px solid #000; margin-top: 5px; }
-#enemy-castle-hp { width: 100%; height: 100%; background: #e74c3c; transition: width 0.2s; }
+#player-castle-hp, #enemy-castle-hp { height: 100%; transition: width 0.2s; }
 
-/* 하단 UI */
-#ui-bottom {
-  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 15px; z-index: 5;
+#center-ui { text-align: center; display: flex; flex-direction: column; align-items: center; }
+#center-ui h2 { font-size: 20px; margin-bottom: 5px; }
+#mana-container {
+  width: 250px; height: 20px; background: rgba(0,0,0,0.8);
+  border: 2px solid #555; border-radius: 15px; position: relative; overflow: hidden;
 }
+#mana-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #2980b9, #8e44ad); transition: width 0.1s; }
+#mana-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; }
+
+#ui-bottom { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 5; }
 #skill-panel { display: flex; gap: 15px; }
 .summon-btn {
   position: relative; width: 100px; height: 100px;
-  background: linear-gradient(to bottom, #34495e, #2c3e50);
-  border: 3px solid #7f8c8d; border-radius: 15px;
-  color: #fff; font-size: 16px; font-weight: bold;
-  cursor: pointer; box-shadow: 0 8px #1a252f;
+  background: linear-gradient(to bottom, #34495e, #2c3e50); border: 3px solid #7f8c8d; border-radius: 15px;
+  color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 8px #1a252f;
   transition: 0.1s; display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
 .summon-btn:active { transform: translateY(6px); box-shadow: 0 2px #1a252f; }
 .summon-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
 .summon-btn .cost {
-  position: absolute; top: -10px; right: -10px;
-  background: #2980b9; border: 2px solid #fff; border-radius: 50%;
-  width: 30px; height: 30px; display: flex; justify-content: center; align-items: center;
-  font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  position: absolute; top: -10px; right: -10px; background: #2980b9; border: 2px solid #fff; border-radius: 50%;
+  width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; font-size: 12px;
 }
 
 #restart-btn {
-  padding: 15px 30px; font-size: 18px; font-weight: bold;
-  background: linear-gradient(to bottom, #e74c3c, #c0392b);
-  color: white; border: 2px solid #ff7675; border-radius: 10px;
-  cursor: pointer; box-shadow: 0 6px #922b21; position: absolute; bottom: 0; right: 0;
+  padding: 15px 30px; font-size: 18px; font-weight: bold; background: linear-gradient(to bottom, #e74c3c, #c0392b);
+  color: white; border: 2px solid #ff7675; border-radius: 10px; cursor: pointer; box-shadow: 0 6px #922b21;
+  position: absolute; bottom: 0; right: 0;
 }
