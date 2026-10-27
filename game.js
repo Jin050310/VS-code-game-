@@ -1,7 +1,8 @@
-// 캔버스 설정
+// 캔버스 및 설정
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let canvasWidth, canvasHeight;
+const LANE_Y = window.innerHeight * 0.65; // 가로 1자 라인
 
 function resizeCanvas() {
   canvasWidth = window.innerWidth;
@@ -12,62 +13,53 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 🖼️ 이미지 불러오기 (판테온 및 보스)
-const pantheonImg = new Image();
-pantheonImg.src = 'https://i.pinimg.com/736x/d9/fc/24/d9fc24194bcce0f329db90229761117f.jpg'; // 새로 저장하신 판테온 이미지
+// 이미지 로드
+const pantheonImg = new Image(); pantheonImg.src = 'pantheon.png'; 
+const bossImg = new Image(); bossImg.src = 'boss.png';
 
-const bossImg = new Image();
-bossImg.src = 'https://i.pinimg.com/1200x/0f/c8/db/0fc8db774cf53ae24fde2a62488f4e80.jpg'; // 바이킹 보스 이미지
-
-// 게임 상태 변수
-let gameActive = false;
-let animationId;
-let lastTime = 0;
-let mana = 0;
-const MAX_MANA = 100;
+// 게임 데이터 정의
 let heroType = '';
+const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
 
-// 영웅 데이터
-const heroData = {
-  pantheon: { name: '판테온', color: '#e74c3c' },
-  mage: { name: '마법사', color: '#9b59b6' },
-  archer: { name: '궁수', color: '#2ecc71' }
-};
-
-// 부하 능력치
 const minionStats = {
   pantheon: [
-    { hp: 100, atk: 10, speed: 1.5, range: 30, cost: 30, color: '#e74c3c', size: 20 },
-    { hp: 200, atk: 20, speed: 1.0, range: 30, cost: 50, color: '#c0392b', size: 30 },
-    { hp: 500, atk: 50, speed: 0.5, range: 30, cost: 70, color: '#8e44ad', size: 40 }
+    { hp: 150, atk: 15, speed: 1.2, range: 40, cost: 30, color: '#e74c3c', size: 20, type: 'melee' },
+    { hp: 300, atk: 30, speed: 1.0, range: 40, cost: 50, color: '#c0392b', size: 30, type: 'melee' },
+    { hp: 600, atk: 60, speed: 0.8, range: 40, cost: 70, color: '#8e44ad', size: 40, type: 'melee' }
   ],
   mage: [
-    { hp: 50, atk: 15, speed: 1.5, range: 200, cost: 30, color: '#9b59b6', size: 20 },
-    { hp: 80, atk: 30, speed: 1.0, range: 250, cost: 50, color: '#8e44ad', size: 30 },
-    { hp: 120, atk: 60, speed: 0.5, range: 300, cost: 70, color: '#d35400', size: 40 }
+    { hp: 80, atk: 20, speed: 1.0, range: 250, cost: 30, color: '#9b59b6', size: 20, type: 'ranged' },
+    { hp: 120, atk: 40, speed: 0.9, range: 280, cost: 50, color: '#8e44ad', size: 25, type: 'ranged' },
+    { hp: 200, atk: 80, speed: 0.7, range: 300, cost: 70, color: '#d35400', size: 35, type: 'ranged' }
   ],
   archer: [
-    { hp: 60, atk: 20, speed: 2.0, range: 150, cost: 30, color: '#2ecc71', size: 20 },
-    { hp: 100, atk: 40, speed: 1.5, range: 180, cost: 50, color: '#27ae60', size: 30 },
-    { hp: 150, atk: 80, speed: 1.0, range: 220, cost: 70, color: '#1abc9c', size: 40 }
+    { hp: 100, atk: 25, speed: 1.5, range: 180, cost: 30, color: '#2ecc71', size: 20, type: 'ranged' },
+    { hp: 150, atk: 50, speed: 1.3, range: 200, cost: 50, color: '#27ae60', size: 25, type: 'ranged' },
+    { hp: 250, atk: 100, speed: 1.0, range: 250, cost: 70, color: '#1abc9c', size: 35, type: 'ranged' }
   ]
 };
 
-// 게임 오브젝트 배열
+// 게임 상태 변수
+let gameActive = false;
+let animationId, lastTime = 0;
+let mana = 0; const MAX_MANA = 100;
+let playerCastleHp = 1500, enemyCastleHp = 2000; // 성 체력
+let gameState = 'PLAYING'; 
+
+// ⭐️ 시간 기반 보스 등장
+let gameTime = 0; 
+const BOSS_SPAWN_TIME = 30000; // 30초 뒤 보스 등장
+
 let allies = [];
 let enemies = [];
+let projectiles = [];
 let effects = [];
 
-// 목표 관련 변수
-let playerHero = null;
+let spawnTimer = 0;
+let bossActive = false; 
 let boss = null;
-let castle = null;
-let gamePhase = 'minions';
 
-let enemySpawnTimer = 0;
-const enemySpawnInterval = 2500;
-
-// 화면 전환 제어
+// 화면 전환
 document.getElementById('start-btn').addEventListener('click', () => {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('select-screen').style.display = 'flex';
@@ -83,45 +75,21 @@ document.querySelectorAll('.hero-card').forEach(card => {
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
-  document.getElementById('hero-name').textContent = `소환사: ${heroData[heroType].name}`;
+  document.getElementById('hero-name').textContent = `소환사: ${heroData[heroType]}`;
   
-  gameActive = true;
-  mana = 0;
-  allies = [];
-  enemies = [];
-  effects = [];
-  gamePhase = 'minions';
-  enemySpawnTimer = 0;
-  
-  // 내 소환사(영웅) 생성
-  playerHero = {
-    x: 100, y: canvasHeight / 2, // 왼쪽에서 시작 (조금 더 안쪽으로)
-    hp: 500, maxHp: 500,
-    size: 40, 
-    color: heroData[heroType].color,
-    isPantheon: heroType === 'pantheon'
-  };
-
-  // 적 보스 생성
-  boss = {
-    x: canvasWidth - 150, y: canvasHeight / 2 - 100,
-    hp: 1500, maxHp: 1500, atk: 30, speed: 0.3, size: 70, color: '#8e44ad',
-    active: false, lastAttack: 0
-  };
-  
-  castle = {
-    x: canvasWidth - 80, y: canvasHeight / 2 + 100,
-    hp: 3000, maxHp: 3000, size: 60, color: '#7f8c8d',
-    active: false
-  };
+  gameActive = true; gameState = 'PLAYING';
+  mana = 0; playerCastleHp = 1500; enemyCastleHp = 2000;
+  allies = []; enemies = []; projectiles = []; effects = [];
+  spawnTimer = 0; bossActive = false; boss = null; gameTime = 0;
   
   document.getElementById('restart-btn').style.display = 'none';
   updateManaUI();
+  updateCastleUI();
   
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
   buttons.forEach((btn, index) => {
-    btn.textContent = `${index + 1}번 부하 (${stats[index].cost} 마나)`;
+    btn.innerHTML = `<span class="cost">${stats[index].cost}</span> 유닛 ${index + 1}`;
     btn.disabled = false;
   });
 
@@ -130,38 +98,31 @@ function startGame() {
 }
 
 function updateManaUI() {
-  const manaPercent = (mana / MAX_MANA) * 100;
-  document.getElementById('mana-bar').style.width = `${manaPercent}%`;
+  document.getElementById('mana-bar').style.width = `${(mana / MAX_MANA) * 100}%`;
   document.getElementById('mana-text').textContent = `마나: ${Math.floor(mana)}/100`;
   
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
   buttons.forEach((btn, index) => {
-    btn.disabled = mana < stats[index].cost || !gameActive;
+    btn.disabled = mana < stats[index].cost || gameState !== 'PLAYING';
   });
 }
 
-function regenMana(dt) {
-  if (mana < MAX_MANA) {
-    mana += 15 * (dt / 1000);
-    if (mana > MAX_MANA) mana = MAX_MANA;
-    updateManaUI();
-  }
-}
-
+// 유닛 소환
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
-    if (!gameActive) return;
+    if (!gameActive || gameState !== 'PLAYING') return;
     const cost = minionStats[heroType][index].cost;
     if (mana >= cost) {
       mana -= cost;
       updateManaUI();
-      
       const stat = minionStats[heroType][index];
+      
       allies.push({
-        x: 150, y: canvasHeight / 2 + (Math.random() * 100 - 50),
+        x: 120, y: LANE_Y,
         hp: stat.hp, maxHp: stat.hp, atk: stat.atk, speed: stat.speed,
-        range: stat.range, color: stat.color, size: stat.size, lastAttack: 0
+        range: stat.range, color: stat.color, size: stat.size, type: stat.type,
+        lastAttack: 0, isEnemy: false
       });
     }
   });
@@ -172,158 +133,187 @@ function gameLoop(timestamp) {
   const dt = timestamp - lastTime;
   lastTime = timestamp;
 
-  regenMana(dt);
-  
-  if (gamePhase === 'minions') {
-    spawnEnemies(dt);
-    if (enemies.length === 0) {
-      gamePhase = 'boss';
-      boss.active = true;
-    }
-  } else if (gamePhase === 'boss') {
-    if (boss.active && boss.hp > 0) {
-      boss.x -= boss.speed;
-    }
-  } else if (gamePhase === 'castle') {
-    enemySpawnTimer += dt;
-    if (enemySpawnTimer > 1500) {
-      enemySpawnTimer = 0;
-      enemies.push({
-        x: canvasWidth - 150, y: canvasHeight / 2 + (Math.random() * 100 - 50),
-        hp: 100, maxHp: 100, atk: 15, speed: 1.0, size: 20, color: '#555', lastAttack: 0
-      });
-    }
+  if (gameState === 'PLAYING') {
+    gameTime += dt;
+    
+    if (mana < MAX_MANA) { mana += 15 * (dt / 1000); updateManaUI(); }
+    
+    spawnSystem(dt);
+    updateUnits(dt);
+    updateProjectiles(dt);
+    checkGameState();
   }
-
-  updateAllies(dt);
-  updateEnemies(dt);
-  updateBossAndCastle(dt);
-  checkGameState();
+  
   render();
-
   animationId = requestAnimationFrame(gameLoop);
 }
 
-function spawnEnemies(dt) {
-  enemySpawnTimer += dt;
-  if (enemySpawnTimer > enemySpawnInterval) {
-    enemySpawnTimer = 0;
-    enemies.push({
-      x: canvasWidth + 50, y: canvasHeight / 2 + (Math.random() * 200 - 100),
-      hp: 50, maxHp: 50, atk: 10, speed: 0.8, size: 25, color: '#555', lastAttack: 0
-    });
-  }
-}
-
-function updateAllies(dt) {
-  const speedMultiplier = dt / 16.67;
-  allies.forEach(ally => {
-    let target = null;
-    let minDist = Infinity;
-
-    let potentialTargets = [...enemies];
-    if (boss.active && boss.hp > 0) potentialTargets.push(boss);
-    if (castle.active && castle.hp > 0) potentialTargets.push(castle);
-
-    potentialTargets.forEach(t => {
-      const dist = Math.hypot(t.x - ally.x, t.y - ally.y);
-      if (dist < minDist) { minDist = dist; target = t; }
-    });
-
-    if (target) {
-      if (minDist <= ally.range) {
-        if (performance.now() - ally.lastAttack > 500) {
-          target.hp -= ally.atk;
-          ally.lastAttack = performance.now();
-          effects.push({ x: target.x, y: target.y, timer: 100, type: 'hit' });
-        }
-      } else {
-        const dx = target.x - ally.x;
-        const dy = target.y - ally.y;
-        const angle = Math.atan2(dy, dx);
-        ally.x += Math.cos(angle) * ally.speed * speedMultiplier;
-        ally.y += Math.sin(angle) * ally.speed * speedMultiplier;
-      }
-    }
-  });
-}
-
-function updateEnemies(dt) {
-  const speedMultiplier = dt / 16.67;
-  enemies = enemies.filter(e => e.hp > 0);
-
-  enemies.forEach(enemy => {
-    let target = null;
-    let minDist = Infinity;
-    let potentialTargets = [...allies, playerHero];
-
-    potentialTargets.forEach(t => {
-      const dist = Math.hypot(t.x - enemy.x, t.y - enemy.y);
-      if (dist < minDist) { minDist = dist; target = t; }
-    });
-
-    if (target) {
-      if (minDist <= 40) {
-        if (performance.now() - enemy.lastAttack > 1000) {
-          target.hp -= enemy.atk;
-          enemy.lastAttack = performance.now();
-          effects.push({ x: target.x, y: target.y, timer: 100, type: 'hit' });
-        }
-      } else {
-        const dx = target.x - enemy.x;
-        const dy = target.y - enemy.y;
-        const angle = Math.atan2(dy, dx);
-        enemy.x += Math.cos(angle) * enemy.speed * speedMultiplier;
-        enemy.y += Math.sin(angle) * enemy.speed * speedMultiplier;
-      }
-    }
-  });
+// ⭐️ 스폰 시스템 (일반 몹 + 30초 뒤 보스)
+function spawnSystem(dt) {
+  spawnTimer += dt;
   
-  allies = allies.filter(a => a.hp > 0);
+  // 일반 몹 스폰 (2.5초마다)
+  if (spawnTimer > 2500) {
+    spawnTimer = 0;
+    const enemyHp = 100 + (gameTime / 1000) * 5;
+    enemies.push({
+      x: canvasWidth - 120, y: LANE_Y,
+      hp: enemyHp, maxHp: enemyHp, atk: 15, speed: 0.8,
+      range: 40, color: '#555', size: 22, type: 'melee',
+      lastAttack: 0, isEnemy: true
+    });
+  }
+
+  // 30초 뒤 보스 등장
+  if (gameTime > BOSS_SPAWN_TIME && !bossActive) {
+    bossActive = true;
+    boss = {
+      x: canvasWidth - 150, y: LANE_Y,
+      hp: 4000, maxHp: 4000, atk: 60, speed: 0.4, range: 60, size: 60, color: '#8e44ad',
+      lastAttack: 0
+    };
+  }
 }
 
-function updateBossAndCastle(dt) {
-  if (boss.active && boss.hp > 0) {
-    const distToHero = Math.hypot(playerHero.x - boss.x, playerHero.y - boss.y);
-    if (distToHero <= boss.size + playerHero.size) {
-      if (performance.now() - boss.lastAttack > 1500) {
-        playerHero.hp -= boss.atk;
-        boss.lastAttack = performance.now();
-        effects.push({ x: playerHero.x, y: playerHero.y, timer: 100, type: 'hit' });
+function updateUnits(dt) {
+  const speedMultiplier = dt / 16.67;
+
+  // 1. 아군 유닛
+  allies.forEach(ally => {
+    let target = enemies.find(e => e.x > ally.x && e.hp > 0);
+    if (bossActive && boss && boss.hp > 0 && boss.x > ally.x) {
+      if (!target || boss.x < target.x) target = boss; 
+    }
+
+    if (target) {
+      const dist = target.x - ally.x;
+      if (dist <= ally.range) {
+        if (performance.now() - ally.lastAttack > 800) {
+          ally.lastAttack = performance.now();
+          if (ally.type === 'ranged') {
+            projectiles.push({ x: ally.x + ally.size, y: ally.y, target: target, atk: ally.atk, speed: 12, color: ally.color });
+          } else {
+            target.hp -= ally.atk;
+            effects.push({ x: target.x, y: target.y, timer: 100, type: 'hit' });
+          }
+        }
+      } else {
+        ally.x += ally.speed * speedMultiplier;
+      }
+    } else {
+      // 적이 없으면 성 공격
+      ally.x += ally.speed * speedMultiplier;
+      if (ally.x >= canvasWidth - 80) {
+        if (performance.now() - ally.lastAttack > 1000) {
+          ally.lastAttack = performance.now();
+          enemyCastleHp -= ally.atk;
+          effects.push({ x: canvasWidth - 60, y: LANE_Y + (Math.random()*40-20), timer: 100, type: 'hit' });
+          updateCastleUI();
+        }
       }
     }
-    if (boss.hp <= 0 && gamePhase === 'boss') {
-      gamePhase = 'castle';
-      boss.active = false;
-      castle.active = true;
+  });
+
+  // 2. 적군 일반 몹
+  enemies.forEach(enemy => {
+    let target = allies.find(a => a.x < enemy.x && a.hp > 0);
+
+    if (target) {
+      const dist = enemy.x - target.x;
+      if (dist <= enemy.range) {
+        if (performance.now() - enemy.lastAttack > 1000) {
+          enemy.lastAttack = performance.now();
+          target.hp -= enemy.atk;
+          effects.push({ x: target.x, y: target.y, timer: 100, type: 'hit' });
+        }
+      } else {
+        enemy.x -= enemy.speed * speedMultiplier;
+      }
+    } else {
+      enemy.x -= enemy.speed * speedMultiplier;
+      if (enemy.x <= 80) {
+        if (performance.now() - enemy.lastAttack > 1000) {
+          enemy.lastAttack = performance.now();
+          playerCastleHp -= enemy.atk;
+          effects.push({ x: 60, y: LANE_Y, timer: 100, type: 'hit' });
+          updateCastleUI();
+        }
+      }
+    }
+  });
+
+  // 3. 보스 로직 (공격 가능)
+  if (bossActive && boss && boss.hp > 0) {
+    let target = allies.find(a => a.x < boss.x && a.hp > 0);
+    if (target) {
+      const dist = boss.x - target.x;
+      if (dist <= boss.range) {
+        if (performance.now() - boss.lastAttack > 1200) {
+          boss.lastAttack = performance.now();
+          target.hp -= boss.atk;
+          effects.push({ x: target.x, y: target.y, timer: 100, type: 'hit' });
+        }
+      } else {
+        boss.x -= boss.speed * speedMultiplier;
+      }
+    } else {
+      boss.x -= boss.speed * speedMultiplier;
+      if (boss.x <= 80) {
+        if (performance.now() - boss.lastAttack > 1500) {
+          boss.lastAttack = performance.now();
+          playerCastleHp -= boss.atk * 2;
+          effects.push({ x: 60, y: LANE_Y, timer: 100, type: 'hit' });
+          updateCastleUI();
+        }
+      }
     }
   }
+
+  allies = allies.filter(a => a.hp > 0);
+  enemies = enemies.filter(e => e.hp > 0);
+}
+
+function updateProjectiles(dt) {
+  const speedMultiplier = dt / 16.67;
+  projectiles.forEach((proj, index) => {
+    if (proj.target.hp <= 0) { projectiles.splice(index, 1); return; }
+    
+    if (proj.x < proj.target.x) {
+      proj.x += proj.speed * speedMultiplier;
+    } else {
+      proj.target.hp -= proj.atk;
+      effects.push({ x: proj.target.x, y: proj.target.y, timer: 100, type: 'hit' });
+      projectiles.splice(index, 1);
+    }
+  });
 }
 
 function checkGameState() {
-  if (playerHero.hp <= 0) {
-    gameOver('패배... 소환사가 쓰러졌습니다.', 'red');
-    return;
-  }
-  if (castle.active && castle.hp <= 0) {
-    gameOver('승리! 적의 성을 파괴했습니다!', 'gold');
-    return;
+  if (playerCastleHp <= 0) {
+    gameState = 'DEFEAT';
+    showEndScreen('패배... 내 성이 파괴되었습니다.');
+  } else if (enemyCastleHp <= 0) {
+    gameState = 'VICTORY';
+    showEndScreen('승리! 적의 성을 파괴했습니다!');
   }
 }
 
-function gameOver(message, color) {
-  gameActive = false;
-  cancelAnimationFrame(animationId);
+function showEndScreen(msg) {
+  gameActive = false; 
   document.getElementById('restart-btn').style.display = 'block';
-  
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  ctx.fillStyle = color;
-  ctx.font = '50px Malgun Gothic';
-  ctx.textAlign = 'center';
-  ctx.fillText(message, canvasWidth / 2, canvasHeight / 2 - 50);
-  
   document.querySelectorAll('.summon-btn').forEach(btn => btn.disabled = true);
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  ctx.fillStyle = gameState === 'VICTORY' ? 'gold' : 'red';
+  ctx.font = 'bold 60px Malgun Gothic';
+  ctx.textAlign = 'center';
+  ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
+}
+
+function updateCastleUI() {
+  const enemyHpPercent = Math.max(0, enemyCastleHp / 2000) * 100;
+  document.getElementById('enemy-castle-hp').style.width = `${enemyHpPercent}%`;
 }
 
 document.getElementById('restart-btn').addEventListener('click', () => {
@@ -332,115 +322,97 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   gameActive = false;
 });
 
+// --- 렌더링 ---
 function render() {
-  const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-  grad.addColorStop(0, '#87CEEB'); grad.addColorStop(1, '#2b2b2b');
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  // 배경
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+  skyGrad.addColorStop(0, '#1a1a2e'); skyGrad.addColorStop(1, '#16213e');
+  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // --- 1. 내 소환사 그리기 (판테온) ---
-  if (playerHero) {
-    if (playerHero.isPantheon && pantheonImg.complete && pantheonImg.naturalWidth !== 0) {
-      ctx.save();
-      // ⭐️ 세로로 긴 이미지 비율에 맞춰 크기 조정 (기존 2.5에서 3.5로 키움)
-      const imgWidth = playerHero.size * 3.0; 
-      const imgHeight = playerHero.size * 3.5; 
-      ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
-      
-      // 이미지 중앙 정렬 및 그리기 (y축 조금 위로)
-      ctx.drawImage(pantheonImg, playerHero.x - imgWidth/2, playerHero.y - imgHeight/2, imgWidth, imgHeight);
-      ctx.restore();
-    } else {
-      // 이미지가 없으면 기본 원으로 그리기
-      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
-      ctx.fillStyle = playerHero.color;
-      ctx.beginPath(); ctx.arc(playerHero.x, playerHero.y, playerHero.size, 0, Math.PI * 2); ctx.fill();
-    }
-    
-    // 이름 표시
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 25);
-    ctx.fillText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 25);
-    
-    drawHpBar(playerHero); 
-    ctx.shadowColor = 'transparent';
-  }
+  // 길
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillRect(0, LANE_Y - 40, canvasWidth, 120);
+  ctx.strokeStyle = '#1a252f'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(0, LANE_Y - 40); ctx.lineTo(canvasWidth, LANE_Y - 40); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, LANE_Y + 80); ctx.lineTo(canvasWidth, LANE_Y + 80); ctx.stroke();
 
-  // --- 2. 아군 부하 그리기 ---
+  // 성
+  drawCastle(80, LANE_Y, '#3498db'); // 내 성
+  drawCastle(canvasWidth - 80, LANE_Y, '#e74c3c'); // 적 성
+
+  // 아군 유닛
   allies.forEach(ally => {
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
     ctx.fillStyle = ally.color;
     ctx.beginPath(); ctx.arc(ally.x, ally.y, ally.size, 0, Math.PI * 2); ctx.fill();
     drawHpBar(ally); ctx.shadowColor = 'transparent';
   });
 
-  // --- 3. 적 졸병 그리기 ---
+  // 적군 유닛
   enemies.forEach(enemy => {
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
     ctx.fillStyle = enemy.color;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2; ctx.stroke();
     drawHpBar(enemy); ctx.shadowColor = 'transparent';
   });
 
-  // --- 4. 보스 그리기 (바이킹 이미지) ---
-  if (boss && boss.active && boss.hp > 0) {
+  // 보스
+  if (bossActive && boss && boss.hp > 0) {
     if (bossImg.complete && bossImg.naturalWidth !== 0) {
       ctx.save();
-      const imgWidth = boss.size * 2.5; 
-      const imgHeight = boss.size * 3.0; 
+      const imgSize = boss.size * 2.5;
       ctx.shadowColor = 'rgba(255,0,0,0.8)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
-      
-      ctx.drawImage(bossImg, boss.x - imgWidth/2, boss.y - imgHeight/2, imgWidth, imgHeight);
+      ctx.drawImage(bossImg, boss.x - imgSize/2, boss.y - imgSize/2, imgSize, imgSize);
       ctx.restore();
     } else {
-      ctx.shadowColor = 'purple'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
-      ctx.fillStyle = boss.color;
-      ctx.beginPath(); ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = boss.color; ctx.beginPath(); ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI*2); ctx.fill();
     }
-    
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-    ctx.strokeText('👑 야만 보스', boss.x, boss.y - boss.size - 35);
-    ctx.fillText('👑 야만 보스', boss.x, boss.y - boss.size - 35);
-    
     drawHpBar(boss); 
-    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('👑 보스', boss.x, boss.y - boss.size - 15);
   }
 
-  // --- 5. 성 그리기 ---
-  if (castle && castle.active && castle.hp > 0) {
-    ctx.shadowColor = 'black'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
-    ctx.fillStyle = castle.color;
-    ctx.fillRect(castle.x - castle.size, castle.y - castle.size, castle.size * 2, castle.size * 2);
-    ctx.fillStyle = '#fff'; ctx.font = '24px sans-serif';
-    ctx.fillText('🏰 성', castle.x, castle.y - castle.size - 20);
-    drawHpBar(castle); ctx.shadowColor = 'transparent';
-  }
+  // 투사체
+  projectiles.forEach(proj => {
+    ctx.fillStyle = proj.color;
+    ctx.beginPath(); ctx.arc(proj.x, proj.y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = proj.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(proj.x - 15, proj.y); ctx.lineTo(proj.x, proj.y); ctx.stroke();
+  });
 
-  // --- 6. 타격 이펙트 ---
+  // 이펙트
   effects.forEach((effect, index) => {
     if (effect.type === 'hit') {
-      ctx.fillStyle = `rgba(255, 0, 0, ${effect.timer / 100})`;
-      ctx.beginPath(); ctx.arc(effect.x, effect.y, 30 - effect.timer/5, 0, Math.PI * 2); ctx.fill();
-      effect.timer -= 2;
+      ctx.fillStyle = `rgba(255, 255, 0, ${effect.timer / 100})`;
+      ctx.beginPath(); ctx.arc(effect.x, effect.y, 25 - effect.timer/5, 0, Math.PI * 2); ctx.fill();
+      effect.timer -= 3;
       if (effect.timer <= 0) effects.splice(index, 1);
     }
   });
 }
 
-// 체력바 그리기
+function drawCastle(x, y, color) {
+  ctx.fillStyle = color; ctx.shadowColor = 'black'; ctx.shadowBlur = 15;
+  ctx.fillRect(x - 40, y - 60, 80, 120);
+  ctx.fillRect(x - 50, y - 90, 20, 50);
+  ctx.fillRect(x + 30, y - 90, 20, 50);
+  ctx.fillRect(x - 10, y - 110, 20, 50);
+  ctx.shadowColor = 'transparent';
+  
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(x, y + 40, 20, Math.PI, 0); ctx.fill();
+  ctx.fillRect(x - 20, y + 40, 40, 20);
+}
+
 function drawHpBar(entity) {
   const barWidth = entity.size * 2;
-  const barHeight = 6;
   const x = entity.x - barWidth / 2;
-  // 이미지가 위로 솟아있으므로 체력바 위치를 조금 더 위로 올림
-  const y = entity.y - entity.size - (entity.isPantheon || entity === boss ? 45 : 15);
+  const y = entity.y - entity.size - 15;
   
-  ctx.fillStyle = 'rgba(0,0,0,0.5)'; 
-  ctx.fillRect(x - 2, y - 2, barWidth + 4, barHeight + 4); // 테두리
-  
-  ctx.fillStyle = 'red'; ctx.fillRect(x, y, barWidth, barHeight);
-  ctx.fillStyle = '#2ecc71'; 
+  ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(x - 2, y - 2, barWidth + 4, 10);
+  ctx.fillStyle = 'red'; ctx.fillRect(x, y, barWidth, 6);
+  ctx.fillStyle = entity.isEnemy ? '#e74c3c' : '#2ecc71'; 
   const hpPercent = Math.max(0, entity.hp / entity.maxHp);
-  ctx.fillRect(x, y, barWidth * hpPercent, barHeight);
+  ctx.fillRect(x, y, barWidth * hpPercent, 6);
 }

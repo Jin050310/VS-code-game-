@@ -9,7 +9,7 @@
   <!-- 1. 시작 화면 -->
   <div id="start-screen" class="screen">
     <h1>⚔️ 영웅의 전장 ⚔️</h1>
-    <p>다가오는 몹을 막아내세요!</p>
+    <p>내 성을 지키고 적의 성을 파괴하세요!</p>
     <button id="start-btn">게임 시작</button>
   </div>
 
@@ -17,38 +17,54 @@
   <div id="select-screen" class="screen" style="display:none;">
     <h2>영웅을 선택하세요</h2>
     <div class="hero-container">
-      <div class="hero-card" data-hero="warrior">
-        <h3>⚔️ 전사</h3>
-        <p>강력한 근접 부하 소환</p>
+      <div class="hero-card" data-hero="pantheon">
+        <h3>🔱 판테온</h3>
+        <p>강력한 근접 유닛 소환</p>
       </div>
       <div class="hero-card" data-hero="mage">
         <h3>🔮 마법사</h3>
-        <p>광역 마법 부하 소환</p>
+        <p>광역 마법 유닛 소환</p>
       </div>
       <div class="hero-card" data-hero="archer">
         <h3>🏹 궁수</h3>
-        <p>원거리 저격 부하 소환</p>
+        <p>원거리 저격 유닛 소환</p>
       </div>
     </div>
   </div>
 
-  <!-- 3. 전투 화면 (Canvas) -->
+  <!-- 3. 전투 화면 -->
   <div id="game-screen" style="display:none;">
+    <!-- 상단 UI -->
     <div id="ui-top">
-      <h2 id="hero-name">영웅</h2>
-      <div id="mana-container">
-        <div id="mana-bar"></div>
-        <span id="mana-text">마나: 0/100</span>
+      <div id="hero-info">
+        <h2 id="hero-name">영웅</h2>
+        <div id="mana-container">
+          <div id="mana-bar"></div>
+          <span id="mana-text">마나: 0/100</span>
+        </div>
+      </div>
+      <!-- 적 성 체력 UI -->
+      <div id="enemy-castle-ui">
+        <span>적 성</span>
+        <div class="castle-hp-bar"><div id="enemy-castle-hp"></div></div>
       </div>
     </div>
 
+    <!-- 전투 캔버스 -->
     <canvas id="game-canvas"></canvas>
 
+    <!-- 하단 UI -->
     <div id="ui-bottom">
       <div id="skill-panel">
-        <button class="summon-btn" data-type="minion1">부하 1 소환 (30)</button>
-        <button class="summon-btn" data-type="minion2">부하 2 소환 (50)</button>
-        <button class="summon-btn" data-type="minion3">부하 3 소환 (70)</button>
+        <button class="summon-btn" data-type="minion1">
+          <span class="cost">30</span> 유닛 1
+        </button>
+        <button class="summon-btn" data-type="minion2">
+          <span class="cost">50</span> 유닛 2
+        </button>
+        <button class="summon-btn" data-type="minion3">
+          <span class="cost">70</span> 유닛 3
+        </button>
       </div>
       <button id="restart-btn" style="display:none;">다시 시작</button>
     </div>
