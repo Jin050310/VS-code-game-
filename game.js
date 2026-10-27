@@ -14,10 +14,10 @@ resizeCanvas();
 
 // 🖼️ 이미지 불러오기 (판테온 및 보스)
 const pantheonImg = new Image();
-pantheonImg.src = 'pantheon.png'; // 새로 저장하신 판테온 이미지
+pantheonImg.src = 'https://i.pinimg.com/736x/d9/fc/24/d9fc24194bcce0f329db90229761117f.jpg'; // 새로 저장하신 판테온 이미지
 
 const bossImg = new Image();
-bossImg.src = 'boss.png'; // 바이킹 보스 이미지
+bossImg.src = 'https://i.pinimg.com/1200x/0f/c8/db/0fc8db774cf53ae24fde2a62488f4e80.jpg'; // 바이킹 보스 이미지
 
 // 게임 상태 변수
 let gameActive = false;
