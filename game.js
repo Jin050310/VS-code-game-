@@ -12,6 +12,13 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+// 🖼️ 이미지 불러오기 (판테온 및 보스)
+const pantheonImg = new Image();
+pantheonImg.src = 'pantheon.png'; // 영웅(판테온) 이미지
+
+const bossImg = new Image();
+bossImg.src = 'boss.png'; // ⭐️ 새로 추가된 적 보스 이미지
+
 // 게임 상태 변수
 let gameActive = false;
 let animationId;
@@ -22,14 +29,14 @@ let heroType = '';
 
 // 영웅 데이터
 const heroData = {
-  warrior: { name: '전사', color: '#e74c3c' },
+  pantheon: { name: '판테온', color: '#e74c3c' },
   mage: { name: '마법사', color: '#9b59b6' },
   archer: { name: '궁수', color: '#2ecc71' }
 };
 
 // 부하 능력치
 const minionStats = {
-  warrior: [
+  pantheon: [
     { hp: 100, atk: 10, speed: 1.5, range: 30, cost: 30, color: '#e74c3c', size: 20 },
     { hp: 200, atk: 20, speed: 1.0, range: 30, cost: 50, color: '#c0392b', size: 30 },
     { hp: 500, atk: 50, speed: 0.5, range: 30, cost: 70, color: '#8e44ad', size: 40 }
@@ -47,18 +54,18 @@ const minionStats = {
 };
 
 // 게임 오브젝트 배열
-let allies = []; // 내 부하들
-let enemies = []; // 적 졸병들
+let allies = [];
+let enemies = [];
 let effects = [];
 
-// ⭐️ 새로운 목표 관련 변수
-let playerHero = null; // 내 소환사(영웅)
-let boss = null;       // 적 보스
-let castle = null;     // 적 성
-let gamePhase = 'minions'; // 'minions' -> 'boss' -> 'castle'
+// 목표 관련 변수
+let playerHero = null;
+let boss = null;
+let castle = null;
+let gamePhase = 'minions';
 
 let enemySpawnTimer = 0;
-const enemySpawnInterval = 2500; // 2.5초마다 졸병 스폰
+const enemySpawnInterval = 2500;
 
 // 화면 전환 제어
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -73,7 +80,6 @@ document.querySelectorAll('.hero-card').forEach(card => {
   });
 });
 
-// 게임 시작 및 초기화
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -87,32 +93,31 @@ function startGame() {
   gamePhase = 'minions';
   enemySpawnTimer = 0;
   
-  // ⭐️ 내 소환사(영웅) 생성 (왼쪽 끝)
+  // 내 소환사(영웅) 생성
   playerHero = {
     x: 50, y: canvasHeight / 2,
     hp: 500, maxHp: 500,
-    size: 40, color: heroData[heroType].color
+    size: 40, 
+    color: heroData[heroType].color,
+    isPantheon: heroType === 'pantheon'
   };
 
-  // ⭐️ 적 보스 및 성 초기화 (오른쪽 끝)
-  // 보스는 일단 숨겨둠 (졸병 다 죽이면 등장)
+  // ⭐️ 적 보스 생성 (이미지 크기를 고려해 size를 70으로 키움)
   boss = {
     x: canvasWidth - 150, y: canvasHeight / 2 - 100,
-    hp: 1500, maxHp: 1500, atk: 30, speed: 0.3, size: 50, color: '#8e44ad',
+    hp: 1500, maxHp: 1500, atk: 30, speed: 0.3, size: 70, color: '#8e44ad',
     active: false, lastAttack: 0
   };
-  // 성은 보스 처치 후 등장
+  
   castle = {
     x: canvasWidth - 80, y: canvasHeight / 2 + 100,
     hp: 3000, maxHp: 3000, size: 60, color: '#7f8c8d',
     active: false
   };
   
-  // UI 초기화
   document.getElementById('restart-btn').style.display = 'none';
   updateManaUI();
   
-  // 소환 버튼 텍스트 설정
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
   buttons.forEach((btn, index) => {
@@ -124,7 +129,6 @@ function startGame() {
   animationId = requestAnimationFrame(gameLoop);
 }
 
-// 마나 및 버튼 UI 업데이트
 function updateManaUI() {
   const manaPercent = (mana / MAX_MANA) * 100;
   document.getElementById('mana-bar').style.width = `${manaPercent}%`;
@@ -137,7 +141,6 @@ function updateManaUI() {
   });
 }
 
-// 마나 회복
 function regenMana(dt) {
   if (mana < MAX_MANA) {
     mana += 15 * (dt / 1000);
@@ -146,7 +149,6 @@ function regenMana(dt) {
   }
 }
 
-// 아군 소환
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
     if (!gameActive) return;
@@ -165,7 +167,6 @@ document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   });
 });
 
-// 게임 루프
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
@@ -175,20 +176,17 @@ function gameLoop(timestamp) {
   
   if (gamePhase === 'minions') {
     spawnEnemies(dt);
-    // ⭐️ 화면에 적 졸병이 없고, 스폰된 적이 0마리면 보스 등장
     if (enemies.length === 0) {
       gamePhase = 'boss';
       boss.active = true;
     }
   } else if (gamePhase === 'boss') {
-    // 보스는 소환사에게 다가감
     if (boss.active && boss.hp > 0) {
       boss.x -= boss.speed;
     }
   } else if (gamePhase === 'castle') {
-    // 성은 자동 공격하는 몹(수비병)을 계속 생성
     enemySpawnTimer += dt;
-    if (enemySpawnTimer > 1500) { // 1.5초마다 수비병 생성
+    if (enemySpawnTimer > 1500) {
       enemySpawnTimer = 0;
       enemies.push({
         x: canvasWidth - 150, y: canvasHeight / 2 + (Math.random() * 100 - 50),
@@ -206,7 +204,6 @@ function gameLoop(timestamp) {
   animationId = requestAnimationFrame(gameLoop);
 }
 
-// 적 졸병 생성
 function spawnEnemies(dt) {
   enemySpawnTimer += dt;
   if (enemySpawnTimer > enemySpawnInterval) {
@@ -218,19 +215,16 @@ function spawnEnemies(dt) {
   }
 }
 
-// 내 부하 이동 및 공격 로직 (보스/성도 타겟팅에 포함)
 function updateAllies(dt) {
   const speedMultiplier = dt / 16.67;
   allies.forEach(ally => {
     let target = null;
     let minDist = Infinity;
 
-    // 현재 타겟이 될 수 있는 적들 리스트업
     let potentialTargets = [...enemies];
     if (boss.active && boss.hp > 0) potentialTargets.push(boss);
     if (castle.active && castle.hp > 0) potentialTargets.push(castle);
 
-    // 가장 가까운 적 찾기
     potentialTargets.forEach(t => {
       const dist = Math.hypot(t.x - ally.x, t.y - ally.y);
       if (dist < minDist) { minDist = dist; target = t; }
@@ -254,18 +248,13 @@ function updateAllies(dt) {
   });
 }
 
-// 적 졸병 이동 및 공격 로직 (내 소환사 공격)
 function updateEnemies(dt) {
   const speedMultiplier = dt / 16.67;
-  
-  // 죽은 적 제거
   enemies = enemies.filter(e => e.hp > 0);
 
   enemies.forEach(enemy => {
     let target = null;
     let minDist = Infinity;
-
-    // 타겟: 내 부하들 또는 내 소환사
     let potentialTargets = [...allies, playerHero];
 
     potentialTargets.forEach(t => {
@@ -293,11 +282,10 @@ function updateEnemies(dt) {
   allies = allies.filter(a => a.hp > 0);
 }
 
-// 보스 및 성 처리 로직 (보스는 소환사 공격, 성은 수비병만 생성)
 function updateBossAndCastle(dt) {
   if (boss.active && boss.hp > 0) {
-    // 보스는 내 소환사에게 다가가서 공격
     const distToHero = Math.hypot(playerHero.x - boss.x, playerHero.y - boss.y);
+    // 보스 이미지가 커졌으므로 충돌 범위(size)도 자연스럽게 커짐
     if (distToHero <= boss.size + playerHero.size) {
       if (performance.now() - boss.lastAttack > 1500) {
         playerHero.hp -= boss.atk;
@@ -306,29 +294,24 @@ function updateBossAndCastle(dt) {
       }
     }
     if (boss.hp <= 0 && gamePhase === 'boss') {
-      gamePhase = 'castle'; // 보스 죽으면 성 등장
+      gamePhase = 'castle';
       boss.active = false;
       castle.active = true;
     }
   }
 }
 
-// ⭐️ 승리/패배 조건 검사 (T02 기준)
 function checkGameState() {
-  // 패배: 내 소환사(영웅)가 죽으면 끝
   if (playerHero.hp <= 0) {
     gameOver('패배... 소환사가 쓰러졌습니다.', 'red');
     return;
   }
-
-  // 승리: 성의 체력이 0이 되면 끝
   if (castle.active && castle.hp <= 0) {
     gameOver('승리! 적의 성을 파괴했습니다!', 'gold');
     return;
   }
 }
 
-// 게임 오버 처리
 function gameOver(message, color) {
   gameActive = false;
   cancelAnimationFrame(animationId);
@@ -341,35 +324,41 @@ function gameOver(message, color) {
   ctx.textAlign = 'center';
   ctx.fillText(message, canvasWidth / 2, canvasHeight / 2 - 50);
   
-  // UI 비활성화
   document.querySelectorAll('.summon-btn').forEach(btn => btn.disabled = true);
 }
 
-// 다시 시작
 document.getElementById('restart-btn').addEventListener('click', () => {
   document.getElementById('game-screen').style.display = 'none';
   document.getElementById('select-screen').style.display = 'flex';
   gameActive = false;
 });
 
-// 화면 렌더링 (입체감 및 UI 표시)
 function render() {
-  // 배경
   const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
   grad.addColorStop(0, '#87CEEB'); grad.addColorStop(1, '#2b2b2b');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // --- 내 소환사 그리기 ---
+  // 내 소환사 그리기
   if (playerHero) {
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
-    ctx.fillStyle = '#f1c40f'; // 소환사는 눈에 띄게 금색
-    ctx.beginPath(); ctx.arc(playerHero.x, playerHero.y, playerHero.size, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#000'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('소환사', playerHero.x, playerHero.y - playerHero.size - 20);
-    drawHpBar(playerHero); ctx.shadowColor = 'transparent';
+    if (playerHero.isPantheon && pantheonImg.complete && pantheonImg.naturalWidth !== 0) {
+      ctx.save();
+      const imgSize = playerHero.size * 2.5; 
+      ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
+      ctx.drawImage(pantheonImg, playerHero.x - imgSize/2, playerHero.y - imgSize/2, imgSize, imgSize);
+      ctx.restore();
+    } else {
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
+      ctx.fillStyle = playerHero.color;
+      ctx.beginPath(); ctx.arc(playerHero.x, playerHero.y, playerHero.size, 0, Math.PI * 2); ctx.fill();
+    }
+    
+    ctx.fillStyle = '#000'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 15);
+    drawHpBar(playerHero); 
+    ctx.shadowColor = 'transparent';
   }
 
-  // --- 아군 부하 그리기 ---
+  // 아군 부하 그리기
   allies.forEach(ally => {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
     ctx.fillStyle = ally.color;
@@ -377,7 +366,7 @@ function render() {
     drawHpBar(ally); ctx.shadowColor = 'transparent';
   });
 
-  // --- 적 졸병 그리기 ---
+  // 적 졸병 그리기
   enemies.forEach(enemy => {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
     ctx.fillStyle = enemy.color;
@@ -385,17 +374,32 @@ function render() {
     drawHpBar(enemy); ctx.shadowColor = 'transparent';
   });
 
-  // --- 보스 그리기 ---
+  // ⭐️ 보스 그리기 (새로 넣은 이미지 적용)
   if (boss && boss.active && boss.hp > 0) {
-    ctx.shadowColor = 'purple'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
-    ctx.fillStyle = boss.color;
-    ctx.beginPath(); ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '24px sans-serif';
-    ctx.fillText('👑 보스', boss.x, boss.y - boss.size - 20);
-    drawHpBar(boss); ctx.shadowColor = 'transparent';
+    if (bossImg.complete && bossImg.naturalWidth !== 0) {
+      // 보스 이미지가 있으면 이미지로 그리기
+      ctx.save();
+      const imgSize = boss.size * 2.5; // 보스 이미지 크기
+      ctx.shadowColor = 'rgba(255,0,0,0.8)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+      
+      // 이미지 중앙 정렬
+      ctx.drawImage(bossImg, boss.x - imgSize/2, boss.y - imgSize/2, imgSize, imgSize);
+      ctx.restore();
+    } else {
+      // 이미지가 없으면 기존처럼 원으로 그리기
+      ctx.shadowColor = 'purple'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+      ctx.fillStyle = boss.color;
+      ctx.beginPath(); ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI * 2); ctx.fill();
+    }
+    
+    // 보스 이름 텍스트
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('👑 야만 보스', boss.x, boss.y - boss.size - 20);
+    drawHpBar(boss); 
+    ctx.shadowColor = 'transparent';
   }
 
-  // --- 성 그리기 ---
+  // 성 그리기
   if (castle && castle.active && castle.hp > 0) {
     ctx.shadowColor = 'black'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
     ctx.fillStyle = castle.color;
@@ -405,7 +409,7 @@ function render() {
     drawHpBar(castle); ctx.shadowColor = 'transparent';
   }
 
-  // --- 타격 이펙트 ---
+  // 타격 이펙트
   effects.forEach((effect, index) => {
     if (effect.type === 'hit') {
       ctx.fillStyle = `rgba(255, 0, 0, ${effect.timer / 100})`;
@@ -416,7 +420,6 @@ function render() {
   });
 }
 
-// 체력바 그리기
 function drawHpBar(entity) {
   const barWidth = entity.size * 2;
   const barHeight = 6;
