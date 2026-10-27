@@ -2,41 +2,58 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>영웅 키우기</title>
+  <title>팔라독 스타일 디펜스</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>영웅을 선택하세요</h1>
+  <!-- 1. 시작 화면 -->
+  <div id="start-screen" class="screen">
+    <h1>⚔️ 영웅의 전장 ⚔️</h1>
+    <p>다가오는 몹을 막아내세요!</p>
+    <button id="start-btn">게임 시작</button>
+  </div>
 
-  <div id="select">
-    <div class="hero-card" data-name="전사" data-hp="100" data-atk="15">
-      ⚔️ 전사<br>HP 100 / ATK 15
-    </div>
-    <div class="hero-card" data-name="마법사" data-hp="70" data-atk="25">
-      🔮 마법사<br>HP 70 / ATK 25
-    </div>
-    <div class="hero-card" data-name="궁수" data-hp="85" data-atk="20">
-      🏹 궁수<br>HP 85 / ATK 20
+  <!-- 2. 영웅 선택 화면 -->
+  <div id="select-screen" class="screen" style="display:none;">
+    <h2>영웅을 선택하세요</h2>
+    <div class="hero-container">
+      <div class="hero-card" data-hero="warrior">
+        <h3>⚔️ 전사</h3>
+        <p>강력한 근접 부하 소환</p>
+      </div>
+      <div class="hero-card" data-hero="mage">
+        <h3>🔮 마법사</h3>
+        <p>광역 마법 부하 소환</p>
+      </div>
+      <div class="hero-card" data-hero="archer">
+        <h3>🏹 궁수</h3>
+        <p>원거리 저격 부하 소환</p>
+      </div>
     </div>
   </div>
 
-  <div id="game" style="display:none;">
-    <h2 id="heroInfo"></h2>
-    <div class="enemy" id="enemy">👹</div>
-    <p id="enemyHp"></p>
-    <p id="log"></p>
-    <button id="attackBtn">공격!</button>
+  <!-- 3. 전투 화면 (Canvas) -->
+  <div id="game-screen" style="display:none;">
+    <div id="ui-top">
+      <h2 id="hero-name">영웅</h2>
+      <div id="mana-container">
+        <div id="mana-bar"></div>
+        <span id="mana-text">마나: 0/100</span>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-bottom">
+      <div id="skill-panel">
+        <button class="summon-btn" data-type="minion1">부하 1 소환 (30)</button>
+        <button class="summon-btn" data-type="minion2">부하 2 소환 (50)</button>
+        <button class="summon-btn" data-type="minion3">부하 3 소환 (70)</button>
+      </div>
+      <button id="restart-btn" style="display:none;">다시 시작</button>
+    </div>
   </div>
 
   <script src="game.js"></script>
 </body>
 </html>
-  <div id="game" style="display:none;">
-    <h2 id="heroInfo"></h2>
-    <div class="enemy" id="enemy">👹</div>
-    <p id="enemyHp"></p>
-    <p id="log"></p>
-    <button id="attackBtn">공격!</button>
-    <!-- 아래 버튼을 추가하세요 -->
-    <button id="restartBtn" style="display:none;">다시 시작</button>
-  </div>                          
