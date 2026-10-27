@@ -14,10 +14,10 @@ resizeCanvas();
 
 // 🖼️ 이미지 불러오기 (판테온 및 보스)
 const pantheonImg = new Image();
-pantheonImg.src = 'pantheon.png'; // 영웅(판테온) 이미지
+pantheonImg.src = 'pantheon.png'; // 새로 저장하신 판테온 이미지
 
 const bossImg = new Image();
-bossImg.src = 'boss.png'; // ⭐️ 새로 추가된 적 보스 이미지
+bossImg.src = 'boss.png'; // 바이킹 보스 이미지
 
 // 게임 상태 변수
 let gameActive = false;
@@ -95,14 +95,14 @@ function startGame() {
   
   // 내 소환사(영웅) 생성
   playerHero = {
-    x: 50, y: canvasHeight / 2,
+    x: 100, y: canvasHeight / 2, // 왼쪽에서 시작 (조금 더 안쪽으로)
     hp: 500, maxHp: 500,
     size: 40, 
     color: heroData[heroType].color,
     isPantheon: heroType === 'pantheon'
   };
 
-  // ⭐️ 적 보스 생성 (이미지 크기를 고려해 size를 70으로 키움)
+  // 적 보스 생성
   boss = {
     x: canvasWidth - 150, y: canvasHeight / 2 - 100,
     hp: 1500, maxHp: 1500, atk: 30, speed: 0.3, size: 70, color: '#8e44ad',
@@ -159,7 +159,7 @@ document.querySelectorAll('.summon-btn').forEach((btn, index) => {
       
       const stat = minionStats[heroType][index];
       allies.push({
-        x: 100, y: canvasHeight / 2 + (Math.random() * 100 - 50),
+        x: 150, y: canvasHeight / 2 + (Math.random() * 100 - 50),
         hp: stat.hp, maxHp: stat.hp, atk: stat.atk, speed: stat.speed,
         range: stat.range, color: stat.color, size: stat.size, lastAttack: 0
       });
@@ -285,7 +285,6 @@ function updateEnemies(dt) {
 function updateBossAndCastle(dt) {
   if (boss.active && boss.hp > 0) {
     const distToHero = Math.hypot(playerHero.x - boss.x, playerHero.y - boss.y);
-    // 보스 이미지가 커졌으므로 충돌 범위(size)도 자연스럽게 커짐
     if (distToHero <= boss.size + playerHero.size) {
       if (performance.now() - boss.lastAttack > 1500) {
         playerHero.hp -= boss.atk;
@@ -338,27 +337,36 @@ function render() {
   grad.addColorStop(0, '#87CEEB'); grad.addColorStop(1, '#2b2b2b');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // 내 소환사 그리기
+  // --- 1. 내 소환사 그리기 (판테온) ---
   if (playerHero) {
     if (playerHero.isPantheon && pantheonImg.complete && pantheonImg.naturalWidth !== 0) {
       ctx.save();
-      const imgSize = playerHero.size * 2.5; 
+      // ⭐️ 세로로 긴 이미지 비율에 맞춰 크기 조정 (기존 2.5에서 3.5로 키움)
+      const imgWidth = playerHero.size * 3.0; 
+      const imgHeight = playerHero.size * 3.5; 
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
-      ctx.drawImage(pantheonImg, playerHero.x - imgSize/2, playerHero.y - imgSize/2, imgSize, imgSize);
+      
+      // 이미지 중앙 정렬 및 그리기 (y축 조금 위로)
+      ctx.drawImage(pantheonImg, playerHero.x - imgWidth/2, playerHero.y - imgHeight/2, imgWidth, imgHeight);
       ctx.restore();
     } else {
+      // 이미지가 없으면 기본 원으로 그리기
       ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 5;
       ctx.fillStyle = playerHero.color;
       ctx.beginPath(); ctx.arc(playerHero.x, playerHero.y, playerHero.size, 0, Math.PI * 2); ctx.fill();
     }
     
-    ctx.fillStyle = '#000'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 15);
+    // 이름 표시
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.strokeText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 25);
+    ctx.fillText(heroData[heroType].name, playerHero.x, playerHero.y - playerHero.size - 25);
+    
     drawHpBar(playerHero); 
     ctx.shadowColor = 'transparent';
   }
 
-  // 아군 부하 그리기
+  // --- 2. 아군 부하 그리기 ---
   allies.forEach(ally => {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
     ctx.fillStyle = ally.color;
@@ -366,7 +374,7 @@ function render() {
     drawHpBar(ally); ctx.shadowColor = 'transparent';
   });
 
-  // 적 졸병 그리기
+  // --- 3. 적 졸병 그리기 ---
   enemies.forEach(enemy => {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
     ctx.fillStyle = enemy.color;
@@ -374,32 +382,32 @@ function render() {
     drawHpBar(enemy); ctx.shadowColor = 'transparent';
   });
 
-  // ⭐️ 보스 그리기 (새로 넣은 이미지 적용)
+  // --- 4. 보스 그리기 (바이킹 이미지) ---
   if (boss && boss.active && boss.hp > 0) {
     if (bossImg.complete && bossImg.naturalWidth !== 0) {
-      // 보스 이미지가 있으면 이미지로 그리기
       ctx.save();
-      const imgSize = boss.size * 2.5; // 보스 이미지 크기
+      const imgWidth = boss.size * 2.5; 
+      const imgHeight = boss.size * 3.0; 
       ctx.shadowColor = 'rgba(255,0,0,0.8)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
       
-      // 이미지 중앙 정렬
-      ctx.drawImage(bossImg, boss.x - imgSize/2, boss.y - imgSize/2, imgSize, imgSize);
+      ctx.drawImage(bossImg, boss.x - imgWidth/2, boss.y - imgHeight/2, imgWidth, imgHeight);
       ctx.restore();
     } else {
-      // 이미지가 없으면 기존처럼 원으로 그리기
       ctx.shadowColor = 'purple'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
       ctx.fillStyle = boss.color;
       ctx.beginPath(); ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI * 2); ctx.fill();
     }
     
-    // 보스 이름 텍스트
     ctx.fillStyle = '#fff'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('👑 야만 보스', boss.x, boss.y - boss.size - 20);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+    ctx.strokeText('👑 야만 보스', boss.x, boss.y - boss.size - 35);
+    ctx.fillText('👑 야만 보스', boss.x, boss.y - boss.size - 35);
+    
     drawHpBar(boss); 
     ctx.shadowColor = 'transparent';
   }
 
-  // 성 그리기
+  // --- 5. 성 그리기 ---
   if (castle && castle.active && castle.hp > 0) {
     ctx.shadowColor = 'black'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
     ctx.fillStyle = castle.color;
@@ -409,7 +417,7 @@ function render() {
     drawHpBar(castle); ctx.shadowColor = 'transparent';
   }
 
-  // 타격 이펙트
+  // --- 6. 타격 이펙트 ---
   effects.forEach((effect, index) => {
     if (effect.type === 'hit') {
       ctx.fillStyle = `rgba(255, 0, 0, ${effect.timer / 100})`;
@@ -420,11 +428,16 @@ function render() {
   });
 }
 
+// 체력바 그리기
 function drawHpBar(entity) {
   const barWidth = entity.size * 2;
   const barHeight = 6;
   const x = entity.x - barWidth / 2;
-  const y = entity.y - entity.size - 10;
+  // 이미지가 위로 솟아있으므로 체력바 위치를 조금 더 위로 올림
+  const y = entity.y - entity.size - (entity.isPantheon || entity === boss ? 45 : 15);
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; 
+  ctx.fillRect(x - 2, y - 2, barWidth + 4, barHeight + 4); // 테두리
   
   ctx.fillStyle = 'red'; ctx.fillRect(x, y, barWidth, barHeight);
   ctx.fillStyle = '#2ecc71'; 
