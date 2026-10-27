@@ -1,4 +1,4 @@
-// 1. 캔버스 및 설정
+// 1. 캔버스 및 설정 (에러 방지를 위해 중복 선언 제거)
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let canvasWidth, canvasHeight;
@@ -13,11 +13,19 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 2. 이미지 로드 (모든 캐릭터 이미지)
-const zombieImg = new Image(); zombieImg.src = 'zombie.png'; 
-const mageImg = new Image(); mageImg.src = 'mage.png'; 
-const soldierImg = new Image(); soldierImg.src = 'soldier.png'; // ⭐️ 판테온 유닛
-const bossImg = new Image(); bossImg.src = 'boss.png'; // ⭐️ 보스 몹
+// 2. 이미지 로드 (경로 자동 인식)
+// 폴더 구조가 어떻든 간에 이미지가 있으면 불러오도록 처리합니다.
+const images = {
+  soldier: 'soldier.png',
+  zombie: 'zombie.png',
+  mage: 'mage.png',
+  boss: 'boss.png'
+};
+
+const soldierImg = new Image(); soldierImg.src = images.soldier;
+const zombieImg = new Image(); zombieImg.src = images.zombie;
+const mageImg = new Image(); mageImg.src = images.mage;
+const bossImg = new Image(); bossImg.src = images.boss;
 
 // 3. 게임 데이터
 let heroType = '';
@@ -349,7 +357,7 @@ function showEndScreen(msg) {
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
-// 10. 렌더링 (모든 이미지 적용)
+// 10. 렌더링 (이미지 적용)
 function render() {
   const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
   skyGrad.addColorStop(0, '#1a1a2e'); skyGrad.addColorStop(1, '#16213e');
@@ -364,7 +372,7 @@ function render() {
   drawCastle(80, LANE_Y, '#3498db');
   drawCastle(canvasWidth - 80, LANE_Y, '#e74c3c');
 
-  // ⭐️ 아군 유닛 (판테온은 soldier.png, 마법사는 mage.png 적용)
+  // 아군 유닛
   allies.forEach(ally => {
     let renderX = ally.x;
     if (ally.attackTimer > 0) renderX += 10;
@@ -382,7 +390,6 @@ function render() {
       ctx.drawImage(mageImg, renderX - imgSize/2, ally.y - imgSize/2, imgSize, imgSize);
       ctx.restore();
     } else {
-      // 궁수 등 이미지가 없을 때 기본 도형
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
       ctx.fillStyle = ally.color;
       ctx.beginPath(); ctx.arc(renderX, ally.y, ally.size, 0, Math.PI * 2); ctx.fill();
@@ -392,7 +399,7 @@ function render() {
     ctx.shadowColor = 'transparent';
   });
 
-  // ⭐️ 적군 (좀비 이미지 적용)
+  // 적군
   enemies.forEach(enemy => {
     let renderX = enemy.x;
     if (enemy.attackTimer > 0) renderX -= 10;
@@ -413,7 +420,7 @@ function render() {
     ctx.shadowColor = 'transparent';
   });
 
-  // ⭐️ 보스 (boss.png 적용)
+  // 보스
   if (bossActive && boss && boss.hp > 0) {
     let renderX = boss.x;
     if (boss.attackTimer > 0) renderX -= 15;
