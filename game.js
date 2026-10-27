@@ -13,10 +13,10 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 🖼️ 이미지 로드 (파일명이 정확해야 합니다)
+// 🖼️ 이미지 로드 (판테온과 보스만 이미지 사용)
 const pantheonImg = new Image(); pantheonImg.src = 'pantheon.png'; 
 const bossImg = new Image(); bossImg.src = 'boss.png';
-const zombieImg = new Image(); zombieImg.src = 'zombie.png'; // 좀비 이미지
+// 좀비는 이미지 대신 코드로 그립니다.
 
 // 게임 데이터
 let heroType = '';
@@ -162,7 +162,7 @@ function spawnSystem(dt) {
     enemies.push({
       x: canvasWidth - 120, y: LANE_Y,
       hp: enemyHp, maxHp: enemyHp, atk: 15, speed: 0.8,
-      range: 40, color: '#555', size: 22, type: 'melee',
+      range: 40, color: '#2ecc71', size: 22, type: 'melee', // 좀비 색상 초록
       lastAttack: 0, isEnemy: true, attackTimer: 0
     });
   }
@@ -374,21 +374,13 @@ function render() {
     ctx.shadowColor = 'transparent';
   });
 
+  // ⭐️ 적군 (코드로 그린 좀비)
   enemies.forEach(enemy => {
     let renderX = enemy.x;
     if (enemy.attackTimer > 0) renderX -= 10;
     
-    if (zombieImg.complete && zombieImg.naturalWidth !== 0) {
-      ctx.save();
-      const imgSize = enemy.size * 2.2;
-      ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
-      ctx.drawImage(zombieImg, renderX - imgSize/2, enemy.y - imgSize/2, imgSize, imgSize);
-      ctx.restore();
-    } else {
-      ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
-      ctx.fillStyle = enemy.color;
-      ctx.beginPath(); ctx.arc(renderX, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
-    }
+    drawZombie(renderX, enemy.y, enemy.size);
+    
     ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(renderX, enemy.y, enemy.size, 0, Math.PI*2); ctx.stroke();
     drawHpBar({x: renderX, y: enemy.y, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true}); 
     ctx.shadowColor = 'transparent';
@@ -439,6 +431,38 @@ function render() {
       if (effect.timer <= 0) effects.splice(index, 1);
     }
   });
+}
+
+// ⭐️ 코드로 그리는 좀비 함수
+function drawZombie(x, y, size) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+
+  // 몸통 (낡은 옷)
+  ctx.fillStyle = '#4a5d23'; // 어두운 녹색
+  ctx.fillRect(x - size * 0.6, y - size * 0.2, size * 1.2, size * 1.0);
+
+  // 얼굴 (창백한 초록)
+  ctx.fillStyle = '#8fbc8f'; 
+  ctx.beginPath();
+  ctx.arc(x, y - size * 0.5, size * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 눈 (빨간 점)
+  ctx.fillStyle = '#ff0000';
+  ctx.beginPath(); ctx.arc(x - size * 0.2, y - size * 0.6, size * 0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + size * 0.2, y - size * 0.6, size * 0.15, 0, Math.PI * 2); ctx.fill();
+
+  // 입 (피 묻은 듯한 선)
+  ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - size * 0.3, y - size * 0.35); ctx.lineTo(x + size * 0.3, y - size * 0.35); ctx.stroke();
+
+  // 팔 (앞으로 뻗은 모양)
+  ctx.fillStyle = '#8fbc8f';
+  ctx.fillRect(x - size * 0.9, y - size * 0.1, size * 0.4, size * 0.2); // 왼팔
+  ctx.fillRect(x + size * 0.5, y - size * 0.1, size * 0.4, size * 0.2); // 오른팔
+
+  ctx.restore();
 }
 
 function drawCastle(x, y, color) {
