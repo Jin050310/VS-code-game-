@@ -1,4 +1,4 @@
-// 캔버스 및 설정
+// 1. 캔버스 및 설정
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let canvasWidth, canvasHeight;
@@ -13,11 +13,11 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 🖼️ 이미지 로드 (좀비 이미지 하나로 통합)
-const pantheonImg = new Image(); pantheonImg.src = 'pantheon.png'; // 영웅 이미지가 있다면 유지
-const zombieImg = new Image(); zombieImg.src = 'zombie.png'; // ⭐️ 적 몹과 보스 모두 사용할 이미지
+// 2. 이미지 로드
+const pantheonImg = new Image(); pantheonImg.src = 'pantheon.png'; 
+const zombieImg = new Image(); zombieImg.src = 'zombie.png'; 
 
-// 게임 데이터
+// 3. 게임 데이터
 let heroType = '';
 const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
 
@@ -39,14 +39,12 @@ const minionStats = {
   ]
 };
 
-// 게임 상태 변수
+// 4. 게임 상태 변수
 let gameActive = false;
 let animationId, lastTime = 0;
 let mana = 0; const MAX_MANA = 100;
-
 let playerCastleHp = 2000, enemyCastleHp = 2000;
 const MAX_CASTLE_HP = 2000;
-
 let gameState = 'PLAYING'; 
 let gameTime = 0; 
 const BOSS_SPAWN_TIME = 30000;
@@ -62,7 +60,7 @@ let castleCannonTimer = 0;
 let bossActive = false; 
 let boss = null;
 
-// 화면 전환
+// 5. 화면 전환 및 이벤트 리스너
 document.getElementById('start-btn').addEventListener('click', () => {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('select-screen').style.display = 'flex';
@@ -75,6 +73,31 @@ document.querySelectorAll('.hero-card').forEach(card => {
   });
 });
 
+document.querySelectorAll('.summon-btn').forEach((btn, index) => {
+  btn.addEventListener('click', () => {
+    if (!gameActive || gameState !== 'PLAYING') return;
+    const cost = minionStats[heroType][index].cost;
+    if (mana >= cost) {
+      mana -= cost;
+      updateUI();
+      const stat = minionStats[heroType][index];
+      allies.push({
+        x: 120, y: LANE_Y,
+        hp: stat.hp, maxHp: stat.hp, atk: stat.atk, speed: stat.speed,
+        range: stat.range, color: stat.color, size: stat.size, type: stat.type,
+        lastAttack: 0, isEnemy: false, attackTimer: 0
+      });
+    }
+  });
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('select-screen').style.display = 'flex';
+  gameActive = false;
+});
+
+// 6. 게임 시작 함수
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -113,25 +136,7 @@ function updateUI() {
   document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
-document.querySelectorAll('.summon-btn').forEach((btn, index) => {
-  btn.addEventListener('click', () => {
-    if (!gameActive || gameState !== 'PLAYING') return;
-    const cost = minionStats[heroType][index].cost;
-    if (mana >= cost) {
-      mana -= cost;
-      updateUI();
-      const stat = minionStats[heroType][index];
-      
-      allies.push({
-        x: 120, y: LANE_Y,
-        hp: stat.hp, maxHp: stat.hp, atk: stat.atk, speed: stat.speed,
-        range: stat.range, color: stat.color, size: stat.size, type: stat.type,
-        lastAttack: 0, isEnemy: false, attackTimer: 0
-      });
-    }
-  });
-});
-
+// 7. 메인 게임 루프
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
@@ -152,6 +157,7 @@ function gameLoop(timestamp) {
   animationId = requestAnimationFrame(gameLoop);
 }
 
+// 8. 스폰 시스템
 function spawnSystem(dt) {
   spawnTimer += dt;
   
@@ -176,6 +182,7 @@ function spawnSystem(dt) {
   }
 }
 
+// 9. 대포 시스템
 function updateCannonBalls(dt) {
   castleCannonTimer += dt;
   if (castleCannonTimer > 2000) {
@@ -201,10 +208,11 @@ function updateCannonBalls(dt) {
   });
 }
 
+// 10. 유닛 전투 로직 (통과 방지 포함)
 function updateUnits(dt) {
   const speedMultiplier = dt / 16.67;
 
-  // 아군 유닛
+  // 아군
   allies.forEach(ally => {
     let frontEnemy = null;
     enemies.forEach(e => { if (e.x > ally.x && (!frontEnemy || e.x < frontEnemy.x)) frontEnemy = e; });
@@ -242,7 +250,7 @@ function updateUnits(dt) {
     }
   });
 
-  // 적군 일반 몹
+  // 적군
   enemies.forEach(enemy => {
     let frontAlly = null;
     allies.forEach(a => { if (a.x < enemy.x && (!frontAlly || a.x > frontAlly.x)) frontAlly = a; });
@@ -306,6 +314,7 @@ function updateUnits(dt) {
   enemies = enemies.filter(e => e.hp > 0);
 }
 
+// 11. 투사체 및 게임 상태 체크
 function updateProjectiles(dt) {
   const speedMultiplier = dt / 16.67;
   projectiles.forEach((proj, index) => {
@@ -343,12 +352,7 @@ function showEndScreen(msg) {
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-  document.getElementById('game-screen').style.display = 'none';
-  document.getElementById('select-screen').style.display = 'flex';
-  gameActive = false;
-});
-
+// 12. 렌더링
 function render() {
   const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
   skyGrad.addColorStop(0, '#1a1a2e'); skyGrad.addColorStop(1, '#16213e');
@@ -363,7 +367,7 @@ function render() {
   drawCastle(80, LANE_Y, '#3498db');
   drawCastle(canvasWidth - 80, LANE_Y, '#e74c3c');
 
-  // 아군 유닛 그리기 (기존 도형 사용, 영웅 이미지가 있다면 여기에 이미지 로직 추가 가능)
+  // 아군 유닛
   allies.forEach(ally => {
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
     ctx.fillStyle = ally.color;
@@ -374,17 +378,15 @@ function render() {
     ctx.shadowColor = 'transparent';
   });
 
-  // ⭐️ 적군 및 보스 그리기 (좀비 이미지 적용)
+  // 적군 (좀비 이미지)
   enemies.forEach(enemy => {
     let renderX = enemy.x;
     if (enemy.attackTimer > 0) renderX -= 10;
     
     if (zombieImg.complete && zombieImg.naturalWidth !== 0) {
       ctx.save();
-      // 좀비 이미지 크기 (원본 비율 유지)
       const imgSize = enemy.size * 2.5; 
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
-      // 이미지 중앙 정렬
       ctx.drawImage(zombieImg, renderX - imgSize/2, enemy.y - imgSize/2, imgSize, imgSize);
       ctx.restore();
     } else {
@@ -397,13 +399,14 @@ function render() {
     ctx.shadowColor = 'transparent';
   });
 
+  // 보스 (좀비 이미지)
   if (bossActive && boss && boss.hp > 0) {
     let renderX = boss.x;
     if (boss.attackTimer > 0) renderX -= 15;
 
     if (zombieImg.complete && zombieImg.naturalWidth !== 0) {
       ctx.save();
-      const imgSize = boss.size * 2.5; // ⭐️ 보스는 일반 몹보다 훨씬 크게 (60 * 2.5 = 150px)
+      const imgSize = boss.size * 2.5;
       ctx.shadowColor = 'rgba(255,0,0,0.8)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
       ctx.drawImage(zombieImg, renderX - imgSize/2, boss.y - imgSize/2, imgSize, imgSize);
       ctx.restore();
@@ -415,6 +418,7 @@ function render() {
     ctx.fillText('👑 보스', renderX, boss.y - boss.size - 15);
   }
 
+  // 대포 및 투사체
   cannonBalls.forEach(cannon => {
     ctx.fillStyle = cannon.color;
     ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 10, 0, Math.PI * 2); ctx.fill();
@@ -429,6 +433,7 @@ function render() {
     ctx.beginPath(); ctx.moveTo(proj.x - 15, proj.y); ctx.lineTo(proj.x, proj.y); ctx.stroke();
   });
 
+  // 이펙트
   effects.forEach((effect, index) => {
     if (effect.type === 'hit') {
       ctx.fillStyle = `rgba(255, 255, 0, ${effect.timer / 100})`;
@@ -444,6 +449,7 @@ function render() {
   });
 }
 
+// 유틸리티 함수
 function drawCastle(x, y, color) {
   ctx.fillStyle = color; ctx.shadowColor = 'black'; ctx.shadowBlur = 15;
   ctx.fillRect(x - 40, y - 60, 80, 120);
