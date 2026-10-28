@@ -13,27 +13,41 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 🖼️ 이미지 로드 (자동 폴백: battlefield_bg.png / background.png, mage_unit.png / mage.png 모두 호환)
+// 🖼️ 이미지 로드 (확장자 이중 저장 .png.png 및 대체 파일명 완벽 호환)
 const soldierImg = new Image();
 soldierImg.src = 'soldier.png';
+soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
 
 const zombieImg = new Image();
 zombieImg.src = 'zombie.png';
+zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
 
 const mageImg = new Image();
 mageImg.src = 'mage_unit.png';
-mageImg.onerror = () => { mageImg.src = 'mage.png'; };
+mageImg.onerror = () => { 
+  if (mageImg.src.includes('mage_unit.png')) mageImg.src = 'mage.png';
+  else if (mageImg.src.includes('mage.png')) mageImg.src = 'mage.png.png';
+};
 
 const archerImg = new Image();
 archerImg.src = 'archer_unit.png';
-archerImg.onerror = () => { archerImg.src = 'archer.png'; };
+archerImg.onerror = () => { 
+  if (archerImg.src.includes('archer_unit.png')) archerImg.src = 'archer.png';
+  else if (archerImg.src.includes('archer.png')) archerImg.src = 'archer.png.png';
+};
 
 const bossImg = new Image();
 bossImg.src = 'boss.png';
+bossImg.onerror = () => { 
+  if (bossImg.src.includes('boss.png')) bossImg.src = 'boss.png.png';
+};
 
 const backgroundImg = new Image();
 backgroundImg.src = 'battlefield_bg.png';
-backgroundImg.onerror = () => { backgroundImg.src = 'background.png'; };
+backgroundImg.onerror = () => { 
+  if (backgroundImg.src.includes('battlefield_bg.png')) backgroundImg.src = 'background.png';
+  else if (backgroundImg.src.includes('background.png')) backgroundImg.src = 'background.png.png';
+};
 
 let heroType = '';
 const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
@@ -76,6 +90,7 @@ let spawnTimer = 0;
 let castleCannonTimer = 0; 
 let bossActive = false; 
 let boss = null;
+let bossWarningTimer = 0;
 
 // 시작 화면 -> 영웅 선택
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -131,7 +146,7 @@ function startGame() {
   gameActive = true; gameState = 'PLAYING';
   mana = 0; playerCastleHp = MAX_CASTLE_HP; enemyCastleHp = MAX_CASTLE_HP;
   allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
-  spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; gameTime = 0;
+  spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
   
   document.getElementById('restart-btn').style.display = 'none';
   updateUI();
@@ -207,6 +222,7 @@ function spawnSystem(dt) {
 
   if (gameTime > BOSS_SPAWN_TIME && !bossActive) {
     bossActive = true;
+    bossWarningTimer = 180;
     boss = {
       x: canvasWidth - 150, y: LANE_Y,
       hp: 4000, maxHp: 4000, atk: 60, speed: 0.45, range: 65, size: 60, color: '#8e44ad',
@@ -434,17 +450,19 @@ function render() {
 
       ctx.drawImage(currentImg, renderX - imgW / 2, ally.y - imgH + 12, imgW, imgH);
       ctx.restore();
+
+      // 머리 위 HP 바
+      drawHpBar({x: renderX, y: ally.y - imgH + 14, size: ally.size, hp: ally.hp, maxHp: ally.maxHp, isEnemy: false}); 
     } else {
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
       ctx.fillStyle = ally.color;
       ctx.beginPath(); ctx.arc(renderX, ally.y - ally.size / 2, ally.size, 0, Math.PI * 2); ctx.fill();
       ctx.shadowColor = 'transparent';
+      drawHpBar({x: renderX, y: ally.y - ally.size - 5, size: ally.size, hp: ally.hp, maxHp: ally.maxHp, isEnemy: false}); 
     }
-    
-    drawHpBar({x: renderX, y: ally.y - ally.size - 5, size: ally.size, hp: ally.hp, maxHp: ally.maxHp, isEnemy: false}); 
   });
 
-  // 적군 좀비 그리기
+  // 적군 좀비 그리기 (zombie.png)
   enemies.forEach(enemy => {
     let renderX = enemy.x;
     if (enemy.attackTimer > 0) renderX -= 10;
@@ -460,54 +478,92 @@ function render() {
       ctx.ellipse(renderX, enemy.y + 4, imgW * 0.35, 6, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // 좀비 이미지 (원본이 왼쪽을 바라봄)
       ctx.drawImage(zombieImg, renderX - imgW / 2, enemy.y - imgH + 12, imgW, imgH);
       ctx.restore();
+
+      // 머리 위 HP 바
+      drawHpBar({x: renderX, y: enemy.y - imgH + 14, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true}); 
     } else {
       ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 8;
       ctx.fillStyle = enemy.color;
       ctx.beginPath(); ctx.arc(renderX, enemy.y - enemy.size / 2, enemy.size, 0, Math.PI * 2); ctx.fill();
       ctx.shadowColor = 'transparent';
+      drawHpBar({x: renderX, y: enemy.y - enemy.size - 5, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true}); 
     }
-    
-    drawHpBar({x: renderX, y: enemy.y - enemy.size - 5, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true}); 
   });
 
-  // 바이킹 보스 그리기 (플레이어 진영을 바라보도록 수평 반전 적용)
+  // 바이킹 보스 그리기 (boss.png)
   if (bossActive && boss && boss.hp > 0) {
     let renderX = boss.x;
     if (boss.attackTimer > 0) renderX -= 18;
 
+    const imgH = boss.size * 2.8;
+
     if (bossImg.complete && bossImg.naturalWidth !== 0) {
       ctx.save();
-      const imgH = boss.size * 2.8;
       const imgW = imgH * (bossImg.naturalWidth / bossImg.naturalHeight);
       
-      // 그림자
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      // 발밑 웅장한 그림자 & 붉은 오라
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.beginPath();
-      ctx.ellipse(renderX, boss.y + 8, imgW * 0.45, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(renderX, boss.y + 8, imgW * 0.45, 13, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // 플레이어 쪽(왼쪽)으로 수평 반전
+      // 플레이어 쪽(왼쪽)으로 수평 반전하여 돌진
       ctx.translate(renderX, boss.y - imgH + 20);
       ctx.scale(-1, 1);
-      ctx.shadowColor = 'rgba(231, 76, 60, 0.7)';
-      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(231, 76, 60, 0.8)';
+      ctx.shadowBlur = 24;
       ctx.drawImage(bossImg, -imgW / 2, 0, imgW, imgH);
       ctx.restore();
+
+      // 보스 HP 바 (머리 위로 깔끔하게 배치)
+      const headTop = boss.y - imgH + 18;
+      drawHpBar({x: renderX, y: headTop, size: boss.size * 1.3, hp: boss.hp, maxHp: boss.maxHp, isEnemy: true}); 
+
+      // 보스 이름 태그 (HP 바 위)
+      ctx.fillStyle = '#ff4757';
+      ctx.font = 'bold 22px Malgun Gothic, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 8;
+      ctx.fillText('👑 바이킹 보스', renderX, headTop - 20);
+      ctx.shadowColor = 'transparent';
     } else {
       ctx.fillStyle = boss.color;
       ctx.beginPath(); ctx.arc(renderX, boss.y - boss.size / 2, boss.size, 0, Math.PI * 2); ctx.fill();
+      drawHpBar({x: renderX, y: boss.y - boss.size - 10, size: boss.size, hp: boss.hp, maxHp: boss.maxHp, isEnemy: true}); 
+      ctx.fillStyle = '#ff4757';
+      ctx.font = 'bold 22px Malgun Gothic, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 8;
+      ctx.fillText('👑 바이킹 보스', renderX, boss.y - boss.size - 30);
+      ctx.shadowColor = 'transparent';
     }
+  }
 
-    drawHpBar({x: renderX, y: boss.y - boss.size - 10, size: boss.size, hp: boss.hp, maxHp: boss.maxHp, isEnemy: true}); 
-    ctx.fillStyle = '#ff4757';
-    ctx.font = 'bold 22px Malgun Gothic, sans-serif';
+  // 보스 출현 경고 알림 연출
+  if (bossWarningTimer > 0) {
+    bossWarningTimer--;
+    ctx.save();
+    const alpha = Math.min(1, bossWarningTimer / 30);
+    const pulse = Math.sin(performance.now() / 150) * 0.15 + 0.85;
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.65 * alpha})`;
+    ctx.fillRect(0, canvasHeight * 0.28, canvasWidth, 70);
+    
+    ctx.strokeStyle = `rgba(231, 76, 60, ${alpha})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(0, canvasHeight * 0.28, canvasWidth, 70);
+
+    ctx.font = `bold 28px Malgun Gothic, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 8;
-    ctx.fillText('👑 바이킹 보스', renderX, boss.y - boss.size - 30);
-    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = `rgba(255, 71, 87, ${pulse * alpha})`;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 10;
+    ctx.fillText('⚠️ WARNING: 거대 바이킹 보스 출현! ⚠️', canvasWidth / 2, canvasHeight * 0.28 + 45);
+    ctx.restore();
   }
 
   // 대포알
