@@ -1,4 +1,3 @@
-// 1. 캔버스 및 설정
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let canvasWidth, canvasHeight;
@@ -13,14 +12,13 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 2. 이미지 로드 (D:\my-game 폴더에 있는 이미지 연결)
-const soldierImg = new Image(); soldierImg.src = '../my-game/soldier.png'; 
-const zombieImg = new Image(); zombieImg.src = '../my-game/zombie.png';   
-const mageImg = new Image(); mageImg.src = '../my-game/mage.png';         
-const bossImg = new Image(); bossImg.src = '../my-game/boss.png';         
-const backgroundImg = new Image(); backgroundImg.src = '../my-game/background.png'; 
+// ⭐️ 이미지가 game.js와 같은 폴더에 있으므로 파일명만 적습니다.
+const soldierImg = new Image(); soldierImg.src = 'soldier.png'; 
+const zombieImg = new Image(); zombieImg.src = 'zombie.png';   
+const mageImg = new Image(); mageImg.src = 'mage.png';         
+const bossImg = new Image(); bossImg.src = 'boss.png';         
+const backgroundImg = new Image(); backgroundImg.src = 'background.png'; 
 
-// 3. 게임 데이터
 let heroType = '';
 const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
 
@@ -42,7 +40,6 @@ const minionStats = {
   ]
 };
 
-// 4. 게임 상태 변수
 let gameActive = false;
 let animationId, lastTime = 0;
 let mana = 0; const MAX_MANA = 100;
@@ -63,7 +60,6 @@ let castleCannonTimer = 0;
 let bossActive = false; 
 let boss = null;
 
-// 5. 이벤트 리스너
 document.getElementById('start-btn').addEventListener('click', () => {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('select-screen').style.display = 'flex';
@@ -100,7 +96,6 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   gameActive = false;
 });
 
-// 6. 게임 시작
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -139,7 +134,6 @@ function updateUI() {
   document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
-// 7. 메인 루프
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
@@ -160,7 +154,6 @@ function gameLoop(timestamp) {
   animationId = requestAnimationFrame(gameLoop);
 }
 
-// 8. 스폰 시스템
 function spawnSystem(dt) {
   spawnTimer += dt;
   
@@ -210,7 +203,6 @@ function updateCannonBalls(dt) {
   });
 }
 
-// 9. 유닛 전투 로직
 function updateUnits(dt) {
   const speedMultiplier = dt / 16.67;
 
@@ -350,7 +342,6 @@ function showEndScreen(msg) {
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
-// 10. 렌더링
 function render() {
   if (backgroundImg.complete && backgroundImg.naturalWidth !== 0) {
     ctx.drawImage(backgroundImg, 0, 0, canvasWidth, canvasHeight);

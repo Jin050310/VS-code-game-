@@ -11,7 +11,8 @@ body {
 .screen {
   position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  background: url('../my-game/background.png') no-repeat center center / cover;
+  /* ⭐️ 이미지가 같은 폴더에 있으므로 경로를 수정했습니다. */
+  background: url('background.png') no-repeat center center / cover;
   background-color: rgba(0, 0, 0, 0.7); 
   background-blend-mode: overlay;
   z-index: 10;
