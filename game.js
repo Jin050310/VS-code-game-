@@ -13,55 +13,19 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 이미지 로드 (파일명 호환)
-const soldierImg = new Image();
-soldierImg.src = 'soldier.png';
-soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
-
-const zombieImg = new Image();
-zombieImg.src = 'zombie.png';
-zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
-
-const mageImg = new Image();
-mageImg.src = 'mage_unit.png';
-mageImg.onerror = () => {
-  mageImg.src = mageImg.src.includes('mage_unit.png') ? 'mage.png' : 'mage.png.png';
-};
-
-const archerImg = new Image();
-archerImg.src = 'archer_unit.png';
-archerImg.onerror = () => {
-  archerImg.src = archerImg.src.includes('archer_unit.png') ? 'archer.png' : 'archer.png.png';
-};
-
-const bossImg = new Image();
-bossImg.src = 'boss.png';
-bossImg.onerror = () => { bossImg.src = 'boss.png.png'; };
-
-const backgroundImg = new Image();
-backgroundImg.src = 'battlefield_bg.png';
-backgroundImg.onerror = () => {
-  backgroundImg.src = backgroundImg.src.includes('battlefield_bg.png')
-    ? 'background.png'
-    : 'background.png.png';
-};
-
-const castle1Img = new Image();
-castle1Img.src = 'castle1.png';
-castle1Img.onerror = () => { castle1Img.src = 'castle1.png.png'; };
-
-const castle2Img = new Image();
-castle2Img.src = 'castle2.png';
-castle2Img.onerror = () => { castle2Img.src = 'castle2.png.png'; };
+// 이미지 로드
+const soldierImg = new Image(); soldierImg.src = 'soldier.png'; soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
+const zombieImg = new Image(); zombieImg.src = 'zombie.png'; zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
+const mageImg = new Image(); mageImg.src = 'mage_unit.png'; mageImg.onerror = () => { mageImg.src = mageImg.src.includes('mage_unit.png') ? 'mage.png' : 'mage.png.png'; };
+const archerImg = new Image(); archerImg.src = 'archer_unit.png'; archerImg.onerror = () => { archerImg.src = archerImg.src.includes('archer_unit.png') ? 'archer.png' : 'archer.png.png'; };
+const bossImg = new Image(); bossImg.src = 'boss.png'; bossImg.onerror = () => { bossImg.src = 'boss.png.png'; };
+const backgroundImg = new Image(); backgroundImg.src = 'battlefield_bg.png'; backgroundImg.onerror = () => { backgroundImg.src = backgroundImg.src.includes('battlefield_bg.png') ? 'background.png' : 'background.png.png'; };
+const castle1Img = new Image(); castle1Img.src = 'castle1.png'; castle1Img.onerror = () => { castle1Img.src = 'castle1.png.png'; };
+const castle2Img = new Image(); castle2Img.src = 'castle2.png'; castle2Img.onerror = () => { castle2Img.src = 'castle2.png.png'; };
 
 let heroType = '';
-const heroData = {
-  pantheon: '판테온',
-  mage: '마법사',
-  archer: '궁수'
-};
+const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
 
-// 영웅별 유닛 설정
 const minionStats = {
   pantheon: [
     { name: '보병', hp: 160, atk: 18, speed: 1.2, range: 45, cost: 30, color: '#e74c3c', size: 24, type: 'melee' },
@@ -107,7 +71,6 @@ let bossActive = false;
 let boss = null;
 let bossWarningTimer = 0;
 
-// 성 위치 (공격 멈춤선 계산용)
 const PLAYER_CASTLE_X = 120;
 const ENEMY_CASTLE_X = 120;
 
@@ -126,35 +89,17 @@ document.querySelectorAll('.hero-card').forEach(card => {
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
     if (!gameActive || gameState !== 'PLAYING') return;
-
     const stat = minionStats[heroType][index];
-
     if (mana >= stat.cost) {
       mana -= stat.cost;
       updateUI();
-
       allies.push({
-        x: PLAYER_CASTLE_X + 40,
-        y: LANE_Y,
-        hp: stat.hp,
-        maxHp: stat.hp,
-        atk: stat.atk,
-        speed: stat.speed,
-        range: stat.range,
-        color: stat.color,
-        size: stat.size,
-        type: stat.type,
-        lastAttack: 0,
-        isEnemy: false,
-        attackTimer: 0
+        x: PLAYER_CASTLE_X + 40, y: LANE_Y,
+        hp: stat.hp, maxHp: stat.hp, atk: stat.atk, speed: stat.speed,
+        range: stat.range, color: stat.color, size: stat.size, type: stat.type,
+        lastAttack: 0, isEnemy: false, attackTimer: 0
       });
-
-      effects.push({
-        x: PLAYER_CASTLE_X + 40,
-        y: LANE_Y,
-        timer: 120,
-        type: 'summon'
-      });
+      effects.push({ x: PLAYER_CASTLE_X + 40, y: LANE_Y, timer: 120, type: 'summon' });
     }
   });
 });
@@ -169,218 +114,120 @@ function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
   document.getElementById('hero-name').textContent = `소환사: ${heroData[heroType]}`;
-
   const avatarElem = document.getElementById('hero-avatar');
   if (avatarElem) avatarElem.src = `hero_${heroType}.png`;
 
   gameActive = true;
   gameState = 'PLAYING';
-
   mana = 0;
   playerCastleHp = MAX_CASTLE_HP;
   enemyCastleHp = MAX_CASTLE_HP;
-
-  allies = [];
-  enemies = [];
-  projectiles = [];
-  cannonBalls = [];
-  effects = [];
-
-  spawnTimer = 0;
-  castleCannonTimer = 0;
-  bossActive = false;
-  boss = null;
-  bossWarningTimer = 0;
-  gameTime = 0;
+  allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
+  spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
 
   document.getElementById('restart-btn').style.display = 'none';
-
   updateUI();
 
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
-
   buttons.forEach((btn, index) => {
     const s = stats[index];
     let thumb = 'soldier.png';
-
     if (heroType === 'mage') thumb = mageImg.src;
     else if (heroType === 'archer') thumb = archerImg.src;
-
     btn.innerHTML = `
       <span class="cost">${s.cost}</span>
-      <div class="summon-thumb">
-        <img src="${thumb}" onerror="this.style.display='none'">
-      </div>
+      <div class="summon-thumb"><img src="${thumb}" onerror="this.style.display='none'"></div>
       <span class="unit-name">${s.name}</span>
     `;
-
     btn.disabled = false;
   });
 
   lastTime = performance.now();
-
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-  }
-
+  if (animationId) cancelAnimationFrame(animationId);
   animationId = requestAnimationFrame(gameLoop);
 }
 
 function updateUI() {
-  document.getElementById('mana-bar').style.width =
-    `${(mana / MAX_MANA) * 100}%`;
-
-  document.getElementById('mana-text').textContent =
-    `마나: ${Math.floor(mana)}/100`;
+  document.getElementById('mana-bar').style.width = `${(mana / MAX_MANA) * 100}%`;
+  document.getElementById('mana-text').textContent = `마나: ${Math.floor(mana)}/100`;
 
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
-
   buttons.forEach((btn, index) => {
     btn.disabled = mana < stats[index].cost || gameState !== 'PLAYING';
   });
 
-  document.getElementById('player-castle-hp').style.width =
-    `${Math.max(0, playerCastleHp / MAX_CASTLE_HP) * 100}%`;
-
-  document.getElementById('enemy-castle-hp').style.width =
-    `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
+  document.getElementById('player-castle-hp').style.width = `${Math.max(0, playerCastleHp / MAX_CASTLE_HP) * 100}%`;
+  document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
 function gameLoop(timestamp) {
-  // 게임이 종료된 경우 새 프레임을 실행하지 않음
   if (!gameActive) return;
-
   const dt = timestamp - lastTime;
   lastTime = timestamp;
 
   if (gameState === 'PLAYING') {
     gameTime += dt;
-
     if (mana < MAX_MANA) {
       mana = Math.min(MAX_MANA, mana + 15 * (dt / 1000));
       updateUI();
     }
-
     spawnSystem(dt);
     updateUnits(dt);
     updateProjectiles(dt);
     updateCannonBalls(dt);
     checkGameState();
   }
-
   render();
-
-  // 게임이 여전히 진행 중일 때만 다음 프레임 예약
-  if (gameActive) {
-    animationId = requestAnimationFrame(gameLoop);
-  }
+  if (gameActive) animationId = requestAnimationFrame(gameLoop);
 }
 
 function spawnSystem(dt) {
   spawnTimer += dt;
-
   if (spawnTimer > 2500) {
     spawnTimer = 0;
-
     const enemyHp = 100 + (gameTime / 1000) * 5;
-
     enemies.push({
-      x: canvasWidth - ENEMY_CASTLE_X - 40,
-      y: LANE_Y,
-      hp: enemyHp,
-      maxHp: enemyHp,
-      atk: 15,
-      speed: 0.8,
-      range: 40,
-      color: '#555',
-      size: 26,
-      type: 'melee',
-      lastAttack: 0,
-      isEnemy: true,
-      attackTimer: 0
+      x: canvasWidth - ENEMY_CASTLE_X - 40, y: LANE_Y,
+      hp: enemyHp, maxHp: enemyHp, atk: 15, speed: 0.8,
+      range: 40, color: '#555', size: 26, type: 'melee',
+      lastAttack: 0, isEnemy: true, attackTimer: 0
     });
   }
-
   if (gameTime > BOSS_SPAWN_TIME && !bossActive) {
     bossActive = true;
     bossWarningTimer = 180;
-
     boss = {
-      x: canvasWidth - ENEMY_CASTLE_X - 60,
-      y: LANE_Y,
-      hp: 4000,
-      maxHp: 4000,
-      atk: 60,
-      speed: 0.45,
-      range: 65,
-      size: 60,
-      color: '#8e44ad',
-      lastAttack: 0,
-      attackTimer: 0
+      x: canvasWidth - ENEMY_CASTLE_X - 60, y: LANE_Y,
+      hp: 4000, maxHp: 4000, atk: 60, speed: 0.45, range: 65, size: 60, color: '#8e44ad',
+      lastAttack: 0, attackTimer: 0
     };
   }
 }
 
 function updateCannonBalls(dt) {
   castleCannonTimer += dt;
-
   if (castleCannonTimer > 2000) {
-    let closestEnemy = enemies.find(
-      e => e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400
-    );
-
-    if (
-      !closestEnemy &&
-      bossActive &&
-      boss &&
-      boss.x > PLAYER_CASTLE_X &&
-      boss.x < PLAYER_CASTLE_X + 400
-    ) {
-      closestEnemy = boss;
-    }
-
+    let closestEnemy = enemies.find(e => e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400);
+    if (!closestEnemy && bossActive && boss && boss.x > PLAYER_CASTLE_X && boss.x < PLAYER_CASTLE_X + 400) closestEnemy = boss;
     if (closestEnemy) {
       castleCannonTimer = 0;
-
-      cannonBalls.push({
-        x: PLAYER_CASTLE_X,
-        y: LANE_Y - 40,
-        target: closestEnemy,
-        speed: 15,
-        atk: 50,
-        color: '#f1c40f'
-      });
+      cannonBalls.push({ x: PLAYER_CASTLE_X, y: LANE_Y - 40, target: closestEnemy, speed: 15, atk: 50, color: '#f1c40f' });
     }
   }
-
   const speedMultiplier = dt / 16.67;
-
   cannonBalls.forEach((cannon, index) => {
-    if (cannon.target.hp <= 0) {
-      cannonBalls.splice(index, 1);
-      return;
-    }
-
-    if (cannon.x < cannon.target.x) {
-      cannon.x += cannon.speed * speedMultiplier;
-    } else {
+    if (cannon.target.hp <= 0) { cannonBalls.splice(index, 1); return; }
+    if (cannon.x < cannon.target.x) cannon.x += cannon.speed * speedMultiplier;
+    else {
       cannon.target.hp -= cannon.atk;
-
-      effects.push({
-        x: cannon.target.x,
-        y: cannon.target.y,
-        timer: 150,
-        type: 'cannon'
-      });
-
+      effects.push({ x: cannon.target.x, y: cannon.target.y, timer: 150, type: 'cannon' });
       cannonBalls.splice(index, 1);
     }
   });
 }
 
-// 전투 로직
 function updateUnits(dt) {
   const speedMultiplier = dt / 16.67;
   const allyStopLine = canvasWidth - ENEMY_CASTLE_X - 60;
@@ -389,102 +236,46 @@ function updateUnits(dt) {
   // 아군 유닛
   allies.forEach(ally => {
     let frontEnemy = null;
-
-    enemies.forEach(enemy => {
-      if (enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) {
-        frontEnemy = enemy;
-      }
-    });
-
-    if (bossActive && boss && boss.hp > 0 && boss.x > ally.x) {
-      if (!frontEnemy || boss.x < frontEnemy.x) {
-        frontEnemy = boss;
-      }
-    }
-
-    if (ally.attackTimer > 0) {
-      ally.attackTimer -= dt;
-    }
+    enemies.forEach(enemy => { if (enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) frontEnemy = enemy; });
+    if (bossActive && boss && boss.hp > 0 && boss.x > ally.x) { if (!frontEnemy || boss.x < frontEnemy.x) frontEnemy = boss; }
+    if (ally.attackTimer > 0) ally.attackTimer -= dt;
 
     if (frontEnemy) {
       if (frontEnemy.x - ally.x <= ally.range) {
         if (performance.now() - ally.lastAttack > 800) {
-          ally.lastAttack = performance.now();
-          ally.attackTimer = 300;
-
+          ally.lastAttack = performance.now(); ally.attackTimer = 300;
           if (ally.type === 'ranged') {
-            projectiles.push({
-              x: ally.x + ally.size,
-              y: ally.y - 10,
-              target: frontEnemy,
-              atk: ally.atk,
-              speed: 13,
-              color: ally.color,
-              heroType: heroType
-            });
+            projectiles.push({ x: ally.x + ally.size, y: ally.y - 10, target: frontEnemy, atk: ally.atk, speed: 13, color: ally.color, heroType: heroType });
           } else {
             frontEnemy.hp -= ally.atk;
-
-            effects.push({
-              x: frontEnemy.x,
-              y: frontEnemy.y - 15,
-              timer: 100,
-              type: 'hit'
-            });
+            effects.push({ x: frontEnemy.x, y: frontEnemy.y - 15, timer: 100, type: 'hit' });
           }
         }
-      } else if (ally.x < allyStopLine) {
-        ally.x += ally.speed * speedMultiplier;
-      }
+      } else if (ally.x < allyStopLine) ally.x += ally.speed * speedMultiplier;
     } else if (ally.x < allyStopLine) {
       ally.x += ally.speed * speedMultiplier;
     } else {
       if (performance.now() - ally.lastAttack > 1000) {
-        ally.lastAttack = performance.now();
-        ally.attackTimer = 300;
-
+        ally.lastAttack = performance.now(); ally.attackTimer = 300;
         enemyCastleHp = Math.max(0, enemyCastleHp - ally.atk);
-
-        effects.push({
-          x: canvasWidth - ENEMY_CASTLE_X,
-          y: LANE_Y + (Math.random() * 40 - 20),
-          timer: 100,
-          type: 'hit'
-        });
-
+        effects.push({ x: canvasWidth - ENEMY_CASTLE_X, y: LANE_Y + (Math.random() * 40 - 20), timer: 100, type: 'hit' });
         updateUI();
       }
     }
   });
 
-  // 일반 적 유닛
+  // 적군 일반 유닛
   enemies.forEach(enemy => {
     let frontAlly = null;
-
-    allies.forEach(ally => {
-      if (ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) {
-        frontAlly = ally;
-      }
-    });
-
-    if (enemy.attackTimer > 0) {
-      enemy.attackTimer -= dt;
-    }
+    allies.forEach(ally => { if (ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
+    if (enemy.attackTimer > 0) enemy.attackTimer -= dt;
 
     if (frontAlly) {
       if (enemy.x - frontAlly.x <= enemy.range) {
         if (performance.now() - enemy.lastAttack > 1000) {
-          enemy.lastAttack = performance.now();
-          enemy.attackTimer = 300;
-
+          enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
           frontAlly.hp -= enemy.atk;
-
-          effects.push({
-            x: frontAlly.x,
-            y: frontAlly.y - 15,
-            timer: 100,
-            type: 'hit'
-          });
+          effects.push({ x: frontAlly.x, y: frontAlly.y - 15, timer: 100, type: 'hit' });
         }
       } else if (enemy.x > enemyStopLine) {
         enemy.x -= enemy.speed * speedMultiplier;
@@ -492,20 +283,11 @@ function updateUnits(dt) {
     } else if (enemy.x > enemyStopLine) {
       enemy.x -= enemy.speed * speedMultiplier;
     } else {
-      // 적은 성 체력이 0이 될 때까지 계속 공격
+      enemy.x = enemyStopLine; // 위치 고정
       if (performance.now() - enemy.lastAttack > 1000) {
-        enemy.lastAttack = performance.now();
-        enemy.attackTimer = 300;
-
+        enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
         playerCastleHp = Math.max(0, playerCastleHp - enemy.atk);
-
-        effects.push({
-          x: PLAYER_CASTLE_X,
-          y: LANE_Y,
-          timer: 100,
-          type: 'hit'
-        });
-
+        effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
         updateUI();
       }
     }
@@ -514,31 +296,15 @@ function updateUnits(dt) {
   // 바이킹 보스
   if (bossActive && boss && boss.hp > 0) {
     let frontAlly = null;
-
-    allies.forEach(ally => {
-      if (ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) {
-        frontAlly = ally;
-      }
-    });
-
-    if (boss.attackTimer > 0) {
-      boss.attackTimer -= dt;
-    }
+    allies.forEach(ally => { if (ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
+    if (boss.attackTimer > 0) boss.attackTimer -= dt;
 
     if (frontAlly) {
       if (boss.x - frontAlly.x <= boss.range) {
         if (performance.now() - boss.lastAttack > 1200) {
-          boss.lastAttack = performance.now();
-          boss.attackTimer = 400;
-
+          boss.lastAttack = performance.now(); boss.attackTimer = 400;
           frontAlly.hp -= boss.atk;
-
-          effects.push({
-            x: frontAlly.x,
-            y: frontAlly.y - 25,
-            timer: 100,
-            type: 'hit'
-          });
+          effects.push({ x: frontAlly.x, y: frontAlly.y - 25, timer: 100, type: 'hit' });
         }
       } else if (boss.x > enemyStopLine) {
         boss.x -= boss.speed * speedMultiplier;
@@ -546,20 +312,11 @@ function updateUnits(dt) {
     } else if (boss.x > enemyStopLine) {
       boss.x -= boss.speed * speedMultiplier;
     } else {
-      // 보스도 성 체력이 0이 될 때까지 계속 공격
+      boss.x = enemyStopLine; // 위치 고정
       if (performance.now() - boss.lastAttack > 1500) {
-        boss.lastAttack = performance.now();
-        boss.attackTimer = 400;
-
+        boss.lastAttack = performance.now(); boss.attackTimer = 400;
         playerCastleHp = Math.max(0, playerCastleHp - boss.atk * 2);
-
-        effects.push({
-          x: PLAYER_CASTLE_X,
-          y: LANE_Y,
-          timer: 100,
-          type: 'hit'
-        });
-
+        effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
         updateUI();
       }
     }
@@ -571,34 +328,20 @@ function updateUnits(dt) {
 
 function updateProjectiles(dt) {
   const speedMultiplier = dt / 16.67;
-
   projectiles.forEach((projectile, index) => {
-    if (projectile.target.hp <= 0) {
-      projectiles.splice(index, 1);
-      return;
-    }
-
+    if (projectile.target.hp <= 0) { projectiles.splice(index, 1); return; }
     if (projectile.x < projectile.target.x) {
       projectile.x += projectile.speed * speedMultiplier;
     } else {
       projectile.target.hp -= projectile.atk;
-
-      effects.push({
-        x: projectile.target.x,
-        y: projectile.target.y - 15,
-        timer: 100,
-        type: 'hit'
-      });
-
+      effects.push({ x: projectile.target.x, y: projectile.target.y - 15, timer: 100, type: 'hit' });
       projectiles.splice(index, 1);
     }
   });
 }
 
-// 성 체력이 0 이하가 되었을 때만 게임 종료
 function checkGameState() {
   if (gameState !== 'PLAYING') return;
-
   if (playerCastleHp <= 0) {
     playerCastleHp = 0;
     updateUI();
@@ -614,184 +357,91 @@ function checkGameState() {
 
 function showEndScreen(msg) {
   gameActive = false;
-
   document.getElementById('restart-btn').style.display = 'block';
-
-  document.querySelectorAll('.summon-btn').forEach(btn => {
-    btn.disabled = true;
-  });
-
+  document.querySelectorAll('.summon-btn').forEach(btn => btn.disabled = true);
   ctx.fillStyle = 'rgba(0,0,0,0.85)';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
   ctx.fillStyle = gameState === 'VICTORY' ? 'gold' : '#ff4757';
   ctx.font = 'bold 50px Malgun Gothic';
   ctx.textAlign = 'center';
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
-// 렌더링
 function render() {
   if (backgroundImg.complete && backgroundImg.naturalWidth !== 0) {
     ctx.drawImage(backgroundImg, 0, 0, canvasWidth, canvasHeight);
   } else {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
     ctx.fillStyle = 'rgba(44, 62, 80, 0.8)';
     ctx.fillRect(0, LANE_Y - 40, canvasWidth, 120);
   }
 
   drawCastles();
 
-  // 아군 유닛 그리기
+  // 아군 유닛
   allies.forEach(ally => {
     let renderX = ally.x;
-
-    if (ally.attackTimer > 0) {
-      renderX += 10;
-    }
-
-    let currentImg = null;
-
-    if (heroType === 'pantheon') currentImg = soldierImg;
-    else if (heroType === 'mage') currentImg = mageImg;
-    else if (heroType === 'archer') currentImg = archerImg;
+    if (ally.attackTimer > 0) renderX += 10;
+    let currentImg = (heroType === 'pantheon') ? soldierImg : (heroType === 'mage') ? mageImg : archerImg;
 
     if (currentImg && currentImg.complete && currentImg.naturalWidth !== 0) {
       const imgH = ally.size * 2.6;
       const imgW = imgH * (currentImg.naturalWidth / currentImg.naturalHeight);
-
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
       ctx.ellipse(renderX, ally.y + 4, imgW * 0.35, 6, 0, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.drawImage(
-        currentImg,
-        renderX - imgW / 2,
-        ally.y - imgH + 12,
-        imgW,
-        imgH
-      );
-
-      drawHpBar({
-        x: renderX,
-        y: ally.y - imgH + 14,
-        size: ally.size,
-        hp: ally.hp,
-        maxHp: ally.maxHp,
-        isEnemy: false
-      });
+      ctx.drawImage(currentImg, renderX - imgW / 2, ally.y - imgH + 12, imgW, imgH);
+      drawHpBar({ x: renderX, y: ally.y - imgH + 14, size: ally.size, hp: ally.hp, maxHp: ally.maxHp, isEnemy: false });
     } else {
       ctx.fillStyle = ally.color;
       ctx.beginPath();
       ctx.arc(renderX, ally.y - ally.size / 2, ally.size, 0, Math.PI * 2);
       ctx.fill();
-
-      drawHpBar({
-        x: renderX,
-        y: ally.y - ally.size - 5,
-        size: ally.size,
-        hp: ally.hp,
-        maxHp: ally.maxHp,
-        isEnemy: false
-      });
+      drawHpBar({ x: renderX, y: ally.y - ally.size - 5, size: ally.size, hp: ally.hp, maxHp: ally.maxHp, isEnemy: false });
     }
   });
 
-  // 적 유닛 그리기
+  // 적군 유닛
   enemies.forEach(enemy => {
     let renderX = enemy.x;
-
-    if (enemy.attackTimer > 0) {
-      renderX -= 10;
-    }
-
+    if (enemy.attackTimer > 0) renderX -= 10;
     if (zombieImg.complete && zombieImg.naturalWidth !== 0) {
       const imgH = enemy.size * 2.7;
       const imgW = imgH * (zombieImg.naturalWidth / zombieImg.naturalHeight);
-
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
       ctx.ellipse(renderX, enemy.y + 4, imgW * 0.35, 6, 0, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.drawImage(
-        zombieImg,
-        renderX - imgW / 2,
-        enemy.y - imgH + 12,
-        imgW,
-        imgH
-      );
-
-      drawHpBar({
-        x: renderX,
-        y: enemy.y - imgH + 14,
-        size: enemy.size,
-        hp: enemy.hp,
-        maxHp: enemy.maxHp,
-        isEnemy: true
-      });
+      ctx.drawImage(zombieImg, renderX - imgW / 2, enemy.y - imgH + 12, imgW, imgH);
+      drawHpBar({ x: renderX, y: enemy.y - imgH + 14, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true });
     } else {
       ctx.fillStyle = enemy.color;
       ctx.beginPath();
       ctx.arc(renderX, enemy.y - enemy.size / 2, enemy.size, 0, Math.PI * 2);
       ctx.fill();
-
-      drawHpBar({
-        x: renderX,
-        y: enemy.y - enemy.size - 5,
-        size: enemy.size,
-        hp: enemy.hp,
-        maxHp: enemy.maxHp,
-        isEnemy: true
-      });
+      drawHpBar({ x: renderX, y: enemy.y - enemy.size - 5, size: enemy.size, hp: enemy.hp, maxHp: enemy.maxHp, isEnemy: true });
     }
   });
 
-  // 보스 그리기
+  // 보스
   if (bossActive && boss && boss.hp > 0) {
     let renderX = boss.x;
-
-    if (boss.attackTimer > 0) {
-      renderX -= 18;
-    }
-
+    if (boss.attackTimer > 0) renderX -= 18;
     const imgH = boss.size * 2.8;
-
     if (bossImg.complete && bossImg.naturalWidth !== 0) {
       const imgW = imgH * (bossImg.naturalWidth / bossImg.naturalHeight);
-
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.beginPath();
       ctx.ellipse(renderX, boss.y + 8, imgW * 0.45, 13, 0, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.shadowColor = 'rgba(231, 76, 60, 0.8)';
       ctx.shadowBlur = 24;
-
-      ctx.drawImage(
-        bossImg,
-        renderX - imgW / 2,
-        boss.y - imgH + 20,
-        imgW,
-        imgH
-      );
-
+      ctx.drawImage(bossImg, renderX - imgW / 2, boss.y - imgH + 20, imgW, imgH);
       ctx.shadowColor = 'transparent';
-
       const headTop = boss.y - imgH + 18;
-
-      drawHpBar({
-        x: renderX,
-        y: headTop,
-        size: boss.size * 1.3,
-        hp: boss.hp,
-        maxHp: boss.maxHp,
-        isEnemy: true
-      });
-
+      drawHpBar({ x: renderX, y: headTop, size: boss.size * 1.3, hp: boss.hp, maxHp: boss.maxHp, isEnemy: true });
       ctx.fillStyle = '#ff4757';
       ctx.font = 'bold 22px Malgun Gothic';
       ctx.textAlign = 'center';
@@ -804,48 +454,31 @@ function render() {
       ctx.beginPath();
       ctx.arc(renderX, boss.y - boss.size / 2, boss.size, 0, Math.PI * 2);
       ctx.fill();
-
-      drawHpBar({
-        x: renderX,
-        y: boss.y - boss.size - 10,
-        size: boss.size,
-        hp: boss.hp,
-        maxHp: boss.maxHp,
-        isEnemy: true
-      });
+      drawHpBar({ x: renderX, y: boss.y - boss.size - 10, size: boss.size, hp: boss.hp, maxHp: boss.maxHp, isEnemy: true });
     }
   }
 
-  // 보스 출현 경고
+  // 보스 경고
   if (bossWarningTimer > 0) {
     bossWarningTimer--;
-
     const alpha = Math.min(1, bossWarningTimer / 30);
-
     ctx.fillStyle = `rgba(0, 0, 0, ${0.65 * alpha})`;
     ctx.fillRect(0, canvasHeight * 0.28, canvasWidth, 70);
-
     ctx.strokeStyle = `rgba(231, 76, 60, ${alpha})`;
     ctx.lineWidth = 3;
     ctx.strokeRect(0, canvasHeight * 0.28, canvasWidth, 70);
-
     ctx.font = 'bold 28px Malgun Gothic';
     ctx.textAlign = 'center';
     ctx.fillStyle = `rgba(255, 71, 87, ${alpha})`;
-    ctx.fillText(
-      '⚠️ WARNING: 거대 바이킹 보스 출현! ⚠️',
-      canvasWidth / 2,
-      canvasHeight * 0.28 + 45
-    );
+    ctx.fillText('⚠️ WARNING: 거대 바이킹 보스 출현! ⚠️', canvasWidth / 2, canvasHeight * 0.28 + 45);
   }
 
-  // 성의 포탄 그리기
+  // 대포알
   cannonBalls.forEach(cannon => {
     ctx.fillStyle = cannon.color;
     ctx.beginPath();
     ctx.arc(cannon.x, cannon.y, 10, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.strokeStyle = '#d35400';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -854,7 +487,7 @@ function render() {
     ctx.stroke();
   });
 
-  // 투사체 그리기
+  // 투사체
   projectiles.forEach(projectile => {
     if (projectile.heroType === 'mage') {
       ctx.fillStyle = '#54a0ff';
@@ -871,52 +504,41 @@ function render() {
     }
   });
 
-  // 효과 그리기
-  effects.forEach((effect, index) => {
+  // 🚨 이펙트 (에러 원인 해결: 반지름이 0보다 작아지면 제거)
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const effect = effects[i];
+    let radius = 0;
+    
     if (effect.type === 'hit') {
+      radius = 25 - effect.timer / 5;
       ctx.fillStyle = `rgba(255, 255, 0, ${effect.timer / 100})`;
-      ctx.beginPath();
-      ctx.arc(effect.x, effect.y, 25 - effect.timer / 5, 0, Math.PI * 2);
-      ctx.fill();
-
-      effect.timer -= 4;
-
-      if (effect.timer <= 0) {
-        effects.splice(index, 1);
-      }
     } else if (effect.type === 'cannon') {
+      radius = 40 - effect.timer / 3;
       ctx.fillStyle = `rgba(241, 196, 15, ${effect.timer / 150})`;
-      ctx.beginPath();
-      ctx.arc(effect.x, effect.y, 40 - effect.timer / 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      effect.timer -= 4;
-
-      if (effect.timer <= 0) {
-        effects.splice(index, 1);
-      }
     } else if (effect.type === 'summon') {
       ctx.strokeStyle = `rgba(52, 152, 219, ${effect.timer / 120})`;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.ellipse(
-        effect.x,
-        effect.y + 4,
-        30 - effect.timer / 6,
-        8,
-        0,
-        0,
-        Math.PI * 2
-      );
+      ctx.ellipse(effect.x, effect.y + 4, Math.max(0, 30 - effect.timer / 6), 8, 0, 0, Math.PI * 2);
       ctx.stroke();
-
       effect.timer -= 4;
-
-      if (effect.timer <= 0) {
-        effects.splice(index, 1);
-      }
+      if (effect.timer <= 0) effects.splice(i, 1);
+      continue;
     }
-  });
+
+    // 반지름이 음수가 되면 그리지 않고 배열에서 삭제
+    if (radius > 0) {
+      ctx.beginPath();
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      effect.timer -= 4;
+    } else {
+      effects.splice(i, 1);
+      continue;
+    }
+
+    if (effect.timer <= 0) effects.splice(i, 1);
+  }
 }
 
 function drawCastles() {
@@ -925,52 +547,26 @@ function drawCastles() {
   const castleY = castleBaseY - castleH;
 
   if (castle1Img.complete && castle1Img.naturalWidth !== 0) {
-    const sw = 305;
-    const sh = 325;
-    const sx = 30;
-    const sy = 25;
+    const sw = 305, sh = 325, sx = 30, sy = 25;
     const c1W = castleH * (sw / sh);
     const c1X = 0;
-
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.beginPath();
-    ctx.ellipse(
-      c1X + c1W * 0.48,
-      castleBaseY - 2,
-      c1W * 0.44,
-      16,
-      0,
-      0,
-      Math.PI * 2
-    );
+    ctx.ellipse(c1X + c1W * 0.48, castleBaseY - 2, c1W * 0.44, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.drawImage(castle1Img, sx, sy, sw, sh, c1X, castleY, c1W, castleH);
   } else {
     drawFallbackCastle(PLAYER_CASTLE_X, LANE_Y, '#3498db');
   }
 
   if (castle2Img.complete && castle2Img.naturalWidth !== 0) {
-    const sw = 295;
-    const sh = 310;
-    const sx = 360;
-    const sy = 35;
+    const sw = 295, sh = 310, sx = 360, sy = 35;
     const c2W = castleH * (sw / sh);
     const c2X = canvasWidth - c2W;
-
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.beginPath();
-    ctx.ellipse(
-      c2X + c2W * 0.52,
-      castleBaseY - 2,
-      c2W * 0.44,
-      16,
-      0,
-      0,
-      Math.PI * 2
-    );
+    ctx.ellipse(c2X + c2W * 0.52, castleBaseY - 2, c2W * 0.44, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.drawImage(castle2Img, sx, sy, sw, sh, c2X, castleY, c2W, castleH);
   } else {
     drawFallbackCastle(canvasWidth - ENEMY_CASTLE_X, LANE_Y, '#e74c3c');
@@ -982,7 +578,6 @@ function drawFallbackCastle(x, y, color) {
   ctx.fillRect(x - 40, y - 60, 80, 120);
   ctx.fillRect(x - 50, y - 90, 20, 50);
   ctx.fillRect(x + 30, y - 90, 20, 50);
-
   ctx.fillStyle = '#111';
   ctx.beginPath();
   ctx.arc(x, y + 40, 20, Math.PI, 0);
@@ -990,20 +585,15 @@ function drawFallbackCastle(x, y, color) {
   ctx.fillRect(x - 20, y + 40, 40, 20);
 }
 
-// 체력바 그리기 (아군 파란색, 적군 빨간색)
 function drawHpBar(entity) {
   const barWidth = entity.size * 2;
   const x = entity.x - barWidth / 2;
   const y = entity.y - 12;
-
   ctx.fillStyle = 'rgba(0,0,0,0.9)';
   ctx.fillRect(x - 3, y - 3, barWidth + 6, 12);
-
   ctx.fillStyle = '#333';
   ctx.fillRect(x, y, barWidth, 6);
-
   ctx.fillStyle = entity.isEnemy ? '#e74c3c' : '#3498db';
-
   const hpPercent = Math.max(0, entity.hp / entity.maxHp);
   ctx.fillRect(x, y, barWidth * hpPercent, 6);
 }
