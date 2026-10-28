@@ -155,13 +155,24 @@ function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime; lastTime = timestamp;
 
+  // 🚨 게임 진행 중일 때만 유닛 업데이트 및 상태 체크
   if (gameState === 'PLAYING') {
     gameTime += dt;
     if (mana < MAX_MANA) { mana += 15 * (dt / 1000); updateUI(); }
-    spawnSystem(dt); updateUnits(dt); updateProjectiles(dt); updateCannonBalls(dt); checkGameState();
+    
+    spawnSystem(dt); 
+    updateUnits(dt); 
+    updateProjectiles(dt); 
+    updateCannonBalls(dt); 
+    checkGameState(); // 🚨 여기서 체력 0이 되면 gameState가 'DEFEAT'로 바뀌고 루프가 멈춤
   }
+  
   render();
-  animationId = requestAnimationFrame(gameLoop);
+  
+  // 🚨 게임 오버가 아닐 때만 다음 프레임 요청
+  if (gameState === 'PLAYING') {
+    animationId = requestAnimationFrame(gameLoop);
+  }
 }
 
 function spawnSystem(dt) {
@@ -199,13 +210,13 @@ function updateCannonBalls(dt) {
   });
 }
 
-// 🚨 핵심 전투 로직 (성 앞에서 멈추고 공격)
+// 🚨 핵심 전투 로직 (성 앞에서 멈추고 공격, 위치 고정)
 function updateUnits(dt) {
   const speedMultiplier = dt / 16.67;
-  const allyStopLine = canvasWidth - ENEMY_CASTLE_X - 60;
-  const enemyStopLine = PLAYER_CASTLE_X + 60;
+  const allyStopLine = canvasWidth - ENEMY_CASTLE_X - 60; // 아군이 적 성 앞에 멈추는 위치
+  const enemyStopLine = PLAYER_CASTLE_X + 60;             // 적군이 내 성 앞에 멈추는 위치
 
-  // 아군 유닛
+  // 1. 아군 유닛
   allies.forEach(ally => {
     let frontEnemy = null;
     enemies.forEach(e => { if (e.x > ally.x && (!frontEnemy || e.x < frontEnemy.x)) frontEnemy = e; });
@@ -220,10 +231,15 @@ function updateUnits(dt) {
           if (ally.type === 'ranged') projectiles.push({ x: ally.x + ally.size, y: ally.y - 10, target: frontEnemy, atk: ally.atk, speed: 13, color: ally.color, heroType: heroType });
           else { frontEnemy.hp -= ally.atk; effects.push({ x: frontEnemy.x, y: frontEnemy.y - 15, timer: 100, type: 'hit' }); }
         }
-      } else { if (ally.x < allyStopLine) ally.x += ally.speed * speedMultiplier; }
+      } else { 
+        // 적이 사거리 밖에 있고, 성 앞이면 이동
+        if (ally.x < allyStopLine) ally.x += ally.speed * speedMultiplier; 
+      }
     } else {
+      // 적이 없으면 적 성으로 이동
       if (ally.x < allyStopLine) ally.x += ally.speed * speedMultiplier;
       else {
+        // 적 성 앞에 도달하면 성 공격
         if (performance.now() - ally.lastAttack > 1000) {
           ally.lastAttack = performance.now(); ally.attackTimer = 300;
           enemyCastleHp -= ally.atk;
@@ -234,7 +250,7 @@ function updateUnits(dt) {
     }
   });
 
-  // 적군 일반 몹
+  // 2. 적군 일반 몹
   enemies.forEach(enemy => {
     let frontAlly = null;
     allies.forEach(a => { if (a.x < enemy.x && (!frontAlly || a.x > frontAlly.x)) frontAlly = a; });
@@ -246,10 +262,16 @@ function updateUnits(dt) {
           enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
           frontAlly.hp -= enemy.atk; effects.push({ x: frontAlly.x, y: frontAlly.y - 15, timer: 100, type: 'hit' });
         }
-      } else { if (enemy.x > enemyStopLine) enemy.x -= enemy.speed * speedMultiplier; }
+      } else { 
+        if (enemy.x > enemyStopLine) enemy.x -= enemy.speed * speedMultiplier; 
+      }
     } else {
-      if (enemy.x > enemyStopLine) enemy.x -= enemy.speed * speedMultiplier;
-      else {
+      // 아군이 없으면 내 성으로 이동
+      if (enemy.x > enemyStopLine) {
+        enemy.x -= enemy.speed * speedMultiplier;
+      } else {
+        // 🚨 성 앞에 도달하면 좌표를 고정하고 성 공격
+        enemy.x = enemyStopLine; // 위치 고정 (무한 루프 방지)
         if (performance.now() - enemy.lastAttack > 1000) {
           enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
           playerCastleHp -= enemy.atk; effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
@@ -259,7 +281,7 @@ function updateUnits(dt) {
     }
   });
 
-  // 바이킹 보스
+  // 3. 바이킹 보스
   if (bossActive && boss && boss.hp > 0) {
     let frontAlly = null;
     allies.forEach(a => { if (a.x < boss.x && (!frontAlly || a.x > frontAlly.x)) frontAlly = a; });
@@ -271,10 +293,15 @@ function updateUnits(dt) {
           boss.lastAttack = performance.now(); boss.attackTimer = 400;
           frontAlly.hp -= boss.atk; effects.push({ x: frontAlly.x, y: frontAlly.y - 25, timer: 100, type: 'hit' });
         }
-      } else { if (boss.x > enemyStopLine) boss.x -= boss.speed * speedMultiplier; }
+      } else { 
+        if (boss.x > enemyStopLine) boss.x -= boss.speed * speedMultiplier; 
+      }
     } else {
-      if (boss.x > enemyStopLine) boss.x -= boss.speed * speedMultiplier;
-      else {
+      if (boss.x > enemyStopLine) {
+        boss.x -= boss.speed * speedMultiplier;
+      } else {
+        // 🚨 보스도 성 앞에서 멈추고 공격
+        boss.x = enemyStopLine; 
         if (performance.now() - boss.lastAttack > 1500) {
           boss.lastAttack = performance.now(); boss.attackTimer = 400;
           playerCastleHp -= boss.atk * 2; effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
@@ -299,21 +326,34 @@ function updateProjectiles(dt) {
   });
 }
 
+// 🚨 게임 상태 체크 (체력 0이 되면 즉시 종료)
 function checkGameState() {
-  if (playerCastleHp <= 0) { gameState = 'DEFEAT'; showEndScreen('패배... 내 성이 파괴되었습니다.'); }
-  else if (enemyCastleHp <= 0) { gameState = 'VICTORY'; showEndScreen('승리! 적의 성을 파괴했습니다!'); }
+  if (playerCastleHp <= 0) { 
+    playerCastleHp = 0;
+    gameState = 'DEFEAT'; 
+    showEndScreen('패배... 내 성이 파괴되었습니다.'); 
+  }
+  else if (enemyCastleHp <= 0) { 
+    enemyCastleHp = 0;
+    gameState = 'VICTORY'; 
+    showEndScreen('승리! 적의 성을 파괴했습니다!'); 
+  }
 }
 
 function showEndScreen(msg) {
-  gameActive = false; document.getElementById('restart-btn').style.display = 'block';
+  gameActive = false; 
+  document.getElementById('restart-btn').style.display = 'block';
   document.querySelectorAll('.summon-btn').forEach(btn => btn.disabled = true);
-  ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.85)'; 
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   ctx.fillStyle = gameState === 'VICTORY' ? 'gold' : '#ff4757';
-  ctx.font = 'bold 50px Malgun Gothic'; ctx.textAlign = 'center';
+  ctx.font = 'bold 50px Malgun Gothic'; 
+  ctx.textAlign = 'center';
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
-// 🎨 렌더링 (체력바 색상 명확화)
+// 🎨 렌더링
 function render() {
   if (backgroundImg.complete && backgroundImg.naturalWidth !== 0) ctx.drawImage(backgroundImg, 0, 0, canvasWidth, canvasHeight);
   else { ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.fillStyle = 'rgba(44, 62, 80, 0.8)'; ctx.fillRect(0, LANE_Y - 40, canvasWidth, 120); }
