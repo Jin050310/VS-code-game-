@@ -12,7 +12,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ⭐️ 이미지가 game.js와 같은 폴더에 있으므로 파일명만 적습니다.
+// 이미지 경로 (파일명만 적혀있음)
 const soldierImg = new Image(); soldierImg.src = 'soldier.png'; 
 const zombieImg = new Image(); zombieImg.src = 'zombie.png';   
 const mageImg = new Image(); mageImg.src = 'mage.png';         
