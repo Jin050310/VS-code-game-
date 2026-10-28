@@ -49,6 +49,19 @@ backgroundImg.onerror = () => {
   else if (backgroundImg.src.includes('background.png')) backgroundImg.src = 'background.png.png';
 };
 
+// 🏰 성 이미지 로드 (우리팀 성: castle1.png, 상대팀 성: castle2.png)
+const castle1Img = new Image();
+castle1Img.src = 'castle1.png';
+castle1Img.onerror = () => { 
+  if (castle1Img.src.includes('castle1.png')) castle1Img.src = 'castle1.png.png';
+};
+
+const castle2Img = new Image();
+castle2Img.src = 'castle2.png';
+castle2Img.onerror = () => { 
+  if (castle2Img.src.includes('castle2.png')) castle2Img.src = 'castle2.png.png';
+};
+
 let heroType = '';
 const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
 
@@ -423,9 +436,10 @@ function render() {
     ctx.strokeStyle = '#1a252f'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(0, LANE_Y - 40); ctx.lineTo(canvasWidth, LANE_Y - 40); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, LANE_Y + 80); ctx.lineTo(canvasWidth, LANE_Y + 80); ctx.stroke();
-    drawCastle(80, LANE_Y, '#3498db');
-    drawCastle(canvasWidth - 80, LANE_Y, '#e74c3c');
   }
+
+  // 🏰 성 그리기 (우리팀 성: castle1.png, 상대팀 성: castle2.png)
+  drawCastles();
 
   // 아군 유닛 그리기 (판테온/마법사/궁수 모두 지원)
   allies.forEach(ally => {
@@ -510,12 +524,10 @@ function render() {
       ctx.ellipse(renderX, boss.y + 8, imgW * 0.45, 13, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // 플레이어 쪽(왼쪽)으로 수평 반전하여 돌진
-      ctx.translate(renderX, boss.y - imgH + 20);
-      ctx.scale(-1, 1);
+      // 바이킹 보스가 왼쪽(플레이어 진영)을 바라보며 돌진하도록 렌더링
       ctx.shadowColor = 'rgba(231, 76, 60, 0.8)';
       ctx.shadowBlur = 24;
-      ctx.drawImage(bossImg, -imgW / 2, 0, imgW, imgH);
+      ctx.drawImage(bossImg, renderX - imgW / 2, boss.y - imgH + 20, imgW, imgH);
       ctx.restore();
 
       // 보스 HP 바 (머리 위로 깔끔하게 배치)
@@ -614,7 +626,88 @@ function render() {
   });
 }
 
-function drawCastle(x, y, color) {
+// 🏰 우리팀 성 (castle1.png) 및 상대팀 성 (castle2.png) 렌더링
+function drawCastles() {
+  const castleH = Math.min(270, Math.max(190, canvasHeight * 0.38));
+  const castleBaseY = LANE_Y + 18;
+  const castleY = castleBaseY - castleH;
+
+  // 1. 우리팀 성 (castle1.png)
+  const c1HasImg = castle1Img.complete && castle1Img.naturalWidth !== 0;
+  if (c1HasImg) {
+    // castle1.png의 불투명 성채 영역 (sx: 30, sy: 25, sw: 305, sh: 325)
+    const sw = 305, sh = 325;
+    const sx = 30, sy = 25;
+    const c1W = castleH * (sw / sh);
+    const c1X = 0;
+
+    ctx.save();
+    // 성 바닥 지면 그림자
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(c1X + c1W * 0.48, castleBaseY - 2, c1W * 0.44, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 아군 성 푸른빛 방어막 오라
+    ctx.shadowColor = 'rgba(52, 152, 219, 0.45)';
+    ctx.shadowBlur = 18;
+
+    ctx.drawImage(castle1Img, sx, sy, sw, sh, c1X, castleY, c1W, castleH);
+    ctx.restore();
+
+    // 체력 40% 이하일 때 손상 연기 이펙트
+    if (playerCastleHp < MAX_CASTLE_HP * 0.4) {
+      ctx.save();
+      const smokeTime = (performance.now() / 30) % 40;
+      ctx.fillStyle = 'rgba(50, 50, 50, 0.35)';
+      ctx.beginPath();
+      ctx.arc(c1X + c1W * 0.6, castleY + 40 - smokeTime, 14 + smokeTime * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else {
+    drawFallbackCastle(80, LANE_Y, '#3498db');
+  }
+
+  // 2. 상대팀 성 (castle2.png)
+  const c2HasImg = castle2Img.complete && castle2Img.naturalWidth !== 0;
+  if (c2HasImg) {
+    // castle2.png의 불투명 성채 영역 (sx: 360, sy: 35, sw: 295, sh: 310)
+    const sw = 295, sh = 310;
+    const sx = 360, sy = 35;
+    const c2W = castleH * (sw / sh);
+    const c2X = canvasWidth - c2W;
+
+    ctx.save();
+    // 성 바닥 지면 그림자
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(c2X + c2W * 0.52, castleBaseY - 2, c2W * 0.44, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 적군 성 붉은빛 파괴 오라
+    ctx.shadowColor = 'rgba(231, 76, 60, 0.45)';
+    ctx.shadowBlur = 18;
+
+    ctx.drawImage(castle2Img, sx, sy, sw, sh, c2X, castleY, c2W, castleH);
+    ctx.restore();
+
+    // 체력 40% 이하일 때 손상 연기 이펙트
+    if (enemyCastleHp < MAX_CASTLE_HP * 0.4) {
+      ctx.save();
+      const smokeTime = (performance.now() / 30) % 40;
+      ctx.fillStyle = 'rgba(50, 50, 50, 0.35)';
+      ctx.beginPath();
+      ctx.arc(c2X + c2W * 0.4, castleY + 40 - smokeTime, 14 + smokeTime * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else {
+    drawFallbackCastle(canvasWidth - 80, LANE_Y, '#e74c3c');
+  }
+}
+
+function drawFallbackCastle(x, y, color) {
   ctx.fillStyle = color; ctx.shadowColor = 'black'; ctx.shadowBlur = 15;
   ctx.fillRect(x - 40, y - 60, 80, 120);
   ctx.fillRect(x - 50, y - 90, 20, 50);
