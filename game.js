@@ -55,14 +55,14 @@ let playerCastleHp = 2000;
 let enemyCastleHp = 2000;
 const MAX_CASTLE_HP = 2000;
 
-let gameState = 'PLAYING'; // 'PLAYING', 'PAUSED', 'DEFEAT', 'VICTORY'
+let gameState = 'PLAYING';
 let gameTime = 0;
 const BOSS_SPAWN_TIME = 25000;
 
-// ⭐️ T02-C07: 스테이지 및 레벨 변수
+// ⭐️ 스테이지 및 레벨 변수
 let currentStage = 1;
 let currentLevel = 1;
-const MAX_STAGE = 10; // 최대 스테이지
+const MAX_STAGE = 5; // 최대 스테이지 (5 클리어 시 최종 승리)
 
 let allies = [];
 let enemies = [];
@@ -77,7 +77,6 @@ let boss = null;
 let bossWarningTimer = 0;
 
 let summonCooldown = false;
-
 let isMuted = false;
 let isReduceMotion = false;
 
@@ -97,7 +96,6 @@ document.querySelectorAll('.hero-card').forEach(card => {
   });
 });
 
-// ⭐️ T02-C12: 소환 버튼 연타 방지 (쿨타임 0.2초)
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
     if (!gameActive || gameState !== 'PLAYING' || summonCooldown) return;
@@ -112,7 +110,6 @@ document.querySelectorAll('.summon-btn').forEach((btn, index) => {
         lastAttack: 0, isEnemy: false, attackTimer: 0
       });
       effects.push({ x: PLAYER_CASTLE_X + 40, y: LANE_Y, timer: 120, type: 'summon' });
-      
       summonCooldown = true;
       setTimeout(() => { summonCooldown = false; }, 200);
     }
@@ -125,7 +122,7 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   gameActive = false;
 });
 
-// --- T02-C15: 일시정지/재개 ---
+// --- 일시정지 ---
 function togglePause() {
   if (gameState === 'PLAYING') {
     gameState = 'PAUSED';
@@ -143,7 +140,7 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('pause-btn').addEventListener('click', togglePause);
 document.getElementById('resume-btn').addEventListener('click', togglePause);
 
-// --- T02-C27: 음소거 / 움직임 줄이기 ---
+// --- 음소거 / 효과 ---
 document.getElementById('mute-btn').addEventListener('click', (e) => {
   isMuted = !isMuted;
   e.target.textContent = isMuted ? '🔇 소리 끔' : '🔊 소리 켬';
@@ -154,7 +151,7 @@ document.getElementById('reduce-motion-btn').addEventListener('click', (e) => {
   e.target.textContent = isReduceMotion ? '🚫 효과 끔' : '✨ 효과 켬';
 });
 
-// --- 게임 시작 (초기화) ---
+// --- 게임 시작 ---
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -165,8 +162,6 @@ function startGame() {
   gameActive = true;
   gameState = 'PLAYING';
   mana = 0;
-  
-  // ⭐️ 게임 시작 시 스테이지 및 레벨 초기화
   currentStage = 1;
   currentLevel = 1;
   playerCastleHp = MAX_CASTLE_HP;
@@ -176,8 +171,8 @@ function startGame() {
   spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
   summonCooldown = false;
   document.getElementById('pause-overlay').style.display = 'none';
-
   document.getElementById('restart-btn').style.display = 'none';
+
   updateUI();
   updateStageUI();
 
@@ -215,12 +210,14 @@ function updateUI() {
   document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
-// ⭐️ T02-C07: 스테이지 UI 업데이트
 function updateStageUI() {
-  document.getElementById('stage-level').textContent = `스테이지 ${currentStage} (Lv.${currentLevel})`;
+  const stageElem = document.getElementById('stage-level');
+  if (stageElem) {
+    stageElem.textContent = `스테이지 ${currentStage} (Lv.${currentLevel})`;
+  }
 }
 
-// --- T02-C16, C17: 메인 루프 ---
+// --- 메인 루프 ---
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
@@ -242,7 +239,7 @@ function gameLoop(timestamp) {
     updateUnits(dt);
     updateProjectiles(dt);
     updateCannonBalls(dt);
-    checkGameState();
+    checkGameState(); // ⭐️ 승리/패배 판정
   }
   
   render();
@@ -250,12 +247,11 @@ function gameLoop(timestamp) {
   if (gameActive) animationId = requestAnimationFrame(gameLoop);
 }
 
-// ⭐️ T02-C07: 난이도 상승을 위한 스폰 시스템
+// ⭐️ 난이도 상승 스폰
 function spawnSystem(dt) {
   spawnTimer += dt;
   if (spawnTimer > 2500) {
     spawnTimer = 0;
-    // 난이도: 스테이지가 오를수록 적 체력/공격력 증가
     const difficultyMultiplier = 1 + (currentStage - 1) * 0.3;
     const enemyHp = (100 + (gameTime / 1000) * 5) * difficultyMultiplier;
     const enemyAtk = 15 * difficultyMultiplier;
@@ -270,7 +266,6 @@ function spawnSystem(dt) {
   if (gameTime > BOSS_SPAWN_TIME && !bossActive) {
     bossActive = true;
     bossWarningTimer = 180;
-    // 난이도: 보스도 스테이지에 따라 강해짐
     const bossMultiplier = 1 + (currentStage - 1) * 0.5;
     boss = {
       x: canvasWidth - ENEMY_CASTLE_X - 60, y: LANE_Y,
@@ -285,7 +280,6 @@ function updateCannonBalls(dt) {
   if (castleCannonTimer > 2000) {
     let closestEnemy = enemies.find(e => e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400);
     if (!closestEnemy && bossActive && boss && boss.x > PLAYER_CASTLE_X && boss.x < PLAYER_CASTLE_X + 400) closestEnemy = boss;
-    
     if (closestEnemy) {
       castleCannonTimer = 0;
       cannonBalls.push({ x: PLAYER_CASTLE_X, y: LANE_Y - 40, target: closestEnemy, speed: 15, atk: 50, color: '#f1c40f' });
@@ -308,7 +302,7 @@ function updateUnits(dt) {
   const allyStopLine = canvasWidth - ENEMY_CASTLE_X - 60;
   const enemyStopLine = PLAYER_CASTLE_X + 60;
 
-  // 아군 유닛
+  // 아군
   allies.forEach(ally => {
     let frontEnemy = null;
     enemies.forEach(enemy => { if (enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) frontEnemy = enemy; });
@@ -339,7 +333,7 @@ function updateUnits(dt) {
     }
   });
 
-  // 적군 일반 유닛
+  // 적군
   enemies.forEach(enemy => {
     let frontAlly = null;
     allies.forEach(ally => { if (ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
@@ -368,7 +362,7 @@ function updateUnits(dt) {
     }
   });
 
-  // 바이킹 보스
+  // 보스
   if (bossActive && boss && boss.hp > 0) {
     let frontAlly = null;
     allies.forEach(ally => { if (ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
@@ -415,34 +409,44 @@ function updateProjectiles(dt) {
   });
 }
 
-// ⭐️ T02-C07: 스테이지 및 레벨업 처리
+// ⭐️ 승리/패배 및 스테이지 처리
 function checkGameState() {
   if (gameState !== 'PLAYING') return;
+
   if (playerCastleHp <= 0) {
     playerCastleHp = 0;
     updateUI();
     gameState = 'DEFEAT';
     showEndScreen('패배... 내 성이 파괴되었습니다.');
-  } else if (enemyCastleHp <= 0) {
+    return;
+  }
+
+  if (enemyCastleHp <= 0) {
     enemyCastleHp = 0;
     updateUI();
-    
-    // 승리 시 스테이지 및 레벨 증가
+
     if (currentStage < MAX_STAGE) {
+      // 다음 스테이지로
       currentStage++;
       currentLevel++;
-      // 난이도 상승을 위해 체력 회복 및 게임 시간 초기화
       playerCastleHp = MAX_CASTLE_HP;
       enemyCastleHp = MAX_CASTLE_HP;
       gameTime = 0;
       bossActive = false;
       boss = null;
+      bossWarningTimer = 0;
       allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
-      
+      spawnTimer = 0; castleCannonTimer = 0;
+
       updateStageUI();
       updateUI();
-      alert(`스테이지 ${currentStage}로 진입합니다! 난이도가 상승했습니다.`);
+      
+      setTimeout(() => {
+        alert(`🎉 스테이지 ${currentStage - 1} 클리어!\n다음 스테이지 ${currentStage}로 진입합니다! 난이도가 상승합니다.`);
+      }, 50);
+      
     } else {
+      // 최종 승리
       gameState = 'VICTORY';
       showEndScreen('최종 승리! 모든 스테이지를 클리어했습니다!');
     }
@@ -473,7 +477,7 @@ function render() {
 
   drawCastles();
 
-  // 아군 유닛
+  // 아군
   allies.forEach(ally => {
     let renderX = ally.x;
     if (ally.attackTimer > 0) renderX += 10;
@@ -497,7 +501,7 @@ function render() {
     }
   });
 
-  // 적군 유닛
+  // 적군
   enemies.forEach(enemy => {
     let renderX = enemy.x;
     if (enemy.attackTimer > 0) renderX -= 10;
@@ -552,7 +556,6 @@ function render() {
     }
   }
 
-  // 보스 경고
   if (bossWarningTimer > 0) {
     bossWarningTimer--;
     const alpha = Math.min(1, bossWarningTimer / 30);
@@ -567,7 +570,6 @@ function render() {
     ctx.fillText('⚠️ WARNING: 거대 바이킹 보스 출현! ⚠️', canvasWidth / 2, canvasHeight * 0.28 + 45);
   }
 
-  // 대포알
   cannonBalls.forEach(cannon => {
     ctx.fillStyle = cannon.color;
     ctx.beginPath();
@@ -581,7 +583,6 @@ function render() {
     ctx.stroke();
   });
 
-  // 투사체
   projectiles.forEach(projectile => {
     if (projectile.heroType === 'mage') {
       ctx.fillStyle = '#54a0ff';
@@ -598,13 +599,10 @@ function render() {
     }
   });
 
-  // 이펙트 (에러 방지 처리)
   for (let i = effects.length - 1; i >= 0; i--) {
     const effect = effects[i];
     if (isReduceMotion) { effects.splice(i, 1); continue; }
-    
     let radius = 0;
-    
     if (effect.type === 'hit') {
       radius = 25 - effect.timer / 5;
       ctx.fillStyle = `rgba(255, 255, 0, ${effect.timer / 100})`;
@@ -621,7 +619,6 @@ function render() {
       if (effect.timer <= 0) effects.splice(i, 1);
       continue;
     }
-
     if (radius > 0) {
       ctx.beginPath();
       ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
@@ -631,7 +628,6 @@ function render() {
       effects.splice(i, 1);
       continue;
     }
-
     if (effect.timer <= 0) effects.splice(i, 1);
   }
 }
