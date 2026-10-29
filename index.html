@@ -11,6 +11,7 @@
     <div class="title-content">
       <h1>⚔️ 영웅의 전장 ⚔️</h1>
       <p class="subtitle">내 성을 지키고 적의 성과 바이킹 보스를 격퇴하세요!</p>
+      <p class="subtitle" style="font-size: 1rem; margin-top: 10px;">조작법: 하단 버튼으로 유닛 소환 (P키: 일시정지)</p>
       <button id="start-btn">게임 시작</button>
     </div>
   </div>
@@ -71,7 +72,7 @@
     <!-- 전장 캔버스 -->
     <canvas id="game-canvas"></canvas>
 
-    <!-- 하단 유닛 소환 UI -->
+    <!-- 하단 UI -->
     <div id="ui-bottom">
       <div id="skill-panel">
         <button class="summon-btn" data-index="0">
@@ -90,7 +91,22 @@
           <span class="unit-name">유닛 3</span>
         </button>
       </div>
+      
+      <!-- 컨트롤 버튼 (일시정지, 음소거) -->
+      <div id="control-panel">
+        <button id="pause-btn">⏸️ 일시정지</button>
+        <button id="mute-btn">🔊 소리 켬</button>
+        <button id="reduce-motion-btn">✨ 효과 켬</button>
+      </div>
+      
       <button id="restart-btn" style="display:none;">다시 시작</button>
+    </div>
+    
+    <!-- 일시정지 오버레이 -->
+    <div id="pause-overlay" style="display:none;">
+      <h1>⏸️ 일시정지</h1>
+      <p>P키를 누르거나 아래 버튼을 눌러 재개하세요.</p>
+      <button id="resume-btn">재개하기</button>
     </div>
   </div>
 

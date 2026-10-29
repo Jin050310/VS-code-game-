@@ -93,8 +93,8 @@ h2 { font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px #000; colo
 #mana-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #2980b9, #8e44ad); transition: width 0.1s; }
 #mana-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; }
 
-/* 하단 소환 버튼 */
-#ui-bottom { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; z-index: 5; }
+/* 하단 소환 버튼 및 컨트롤 */
+#ui-bottom { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 5; }
 #skill-panel { display: flex; gap: 18px; }
 .summon-btn {
   position: relative; width: 105px; height: 115px;
@@ -111,8 +111,33 @@ h2 { font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px #000; colo
 .summon-btn .cost { position: absolute; top: -8px; right: -8px; background: #2980b9; border: 2px solid #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; }
 .unit-name { font-size: 13px; color: #f1c40f; text-shadow: 1px 1px 2px #000; margin-top: auto; }
 
+/* 컨트롤 패널 */
+#control-panel { display: flex; gap: 10px; }
+#control-panel button {
+  padding: 8px 16px; font-size: 14px; font-weight: bold; border-radius: 8px;
+  background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; cursor: pointer;
+  transition: 0.2s;
+}
+#control-panel button:hover { background: #34495e; border-color: #f1c40f; }
+
 #restart-btn {
   padding: 15px 32px; font-size: 18px; font-weight: bold; background: linear-gradient(to bottom, #e74c3c, #c0392b);
   color: white; border: 2px solid #ff7675; border-radius: 10px; cursor: pointer; box-shadow: 0 6px #78281f;
   position: absolute; bottom: 0; right: -140px;
 }
+
+/* 일시정지 오버레이 */
+#pause-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75); display: flex; flex-direction: column; justify-content: center; align-items: center;
+  z-index: 20; backdrop-filter: blur(5px);
+}
+#pause-overlay h1 { font-size: 4rem; color: #f1c40f; margin-bottom: 20px; }
+#pause-overlay p { font-size: 1.2rem; color: #eee; margin-bottom: 30px; }
+#resume-btn {
+  padding: 15px 40px; font-size: 20px; font-weight: bold;
+  background: linear-gradient(to bottom, #2ecc71, #27ae60); color: white;
+  border: 2px solid #55efc4; border-radius: 10px; cursor: pointer;
+  box-shadow: 0 6px #1e8449;
+}
+#resume-btn:active { transform: translateY(4px); box-shadow: 0 2px #1e8449; }

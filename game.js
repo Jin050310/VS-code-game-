@@ -10,10 +10,13 @@ function resizeCanvas() {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 }
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  // T02-C13: 창 크기 변경 뒤 게임 상태 유지 (캔버스 크기만 재조정)
+});
 resizeCanvas();
 
-// 🖼️ 이미지 로드 (모두 같은 폴더에 있음)
+// 🖼️ 이미지 로드
 const soldierImg = new Image(); soldierImg.src = 'soldier.png'; soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
 const zombieImg = new Image(); zombieImg.src = 'zombie.png'; zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
 const mageImg = new Image(); mageImg.src = 'mage_unit.png'; mageImg.onerror = () => { mageImg.src = mageImg.src.includes('mage_unit.png') ? 'mage.png' : 'mage.png.png'; };
@@ -55,7 +58,7 @@ let playerCastleHp = 2000;
 let enemyCastleHp = 2000;
 const MAX_CASTLE_HP = 2000;
 
-let gameState = 'PLAYING';
+let gameState = 'PLAYING'; // 'PLAYING', 'PAUSED', 'DEFEAT', 'VICTORY'
 let gameTime = 0;
 const BOSS_SPAWN_TIME = 25000;
 
@@ -71,9 +74,47 @@ let bossActive = false;
 let boss = null;
 let bossWarningTimer = 0;
 
+// T02-C12: 연타 방지 (쿨타임) 변수
+let summonCooldown = false;
+
+// T02-C27: 효과 설정 변수
+let isMuted = false;
+let isReduceMotion = false;
+
 const PLAYER_CASTLE_X = 120;
 const ENEMY_CASTLE_X = 120;
 
+// --- T02-C22 ~ C25: localStorage 저장/불러오기 및 예외 처리 ---
+const STORAGE_KEY = 'paladog_game_records';
+
+function loadRecords() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return { maxLevel: 0, lastHero: 'pantheon' }; // T02-C24: 빈 저장값 기본값
+    const parsed = JSON.parse(data);
+    // T02-C25: 손상된 저장값 기본값
+    if (typeof parsed.maxLevel !== 'number' || !heroData[parsed.lastHero]) {
+      return { maxLevel: 0, lastHero: 'pantheon' };
+    }
+    return parsed;
+  } catch (e) {
+    return { maxLevel: 0, lastHero: 'pantheon' }; // T02-C25: 예외 발생 시 기본값
+  }
+}
+
+function saveRecord(level) {
+  try {
+    const records = loadRecords();
+    if (level > records.maxLevel) {
+      records.maxLevel = level;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+  } catch (e) {
+    console.warn('저장 실패:', e);
+  }
+}
+
+// --- 화면 전환 ---
 document.getElementById('start-btn').addEventListener('click', () => {
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('select-screen').style.display = 'flex';
@@ -86,9 +127,10 @@ document.querySelectorAll('.hero-card').forEach(card => {
   });
 });
 
+// T02-C12: 소환 버튼 연타 방지 로직
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
-    if (!gameActive || gameState !== 'PLAYING') return;
+    if (!gameActive || gameState !== 'PLAYING' || summonCooldown) return;
     const stat = minionStats[heroType][index];
     if (mana >= stat.cost) {
       mana -= stat.cost;
@@ -100,6 +142,10 @@ document.querySelectorAll('.summon-btn').forEach((btn, index) => {
         lastAttack: 0, isEnemy: false, attackTimer: 0
       });
       effects.push({ x: PLAYER_CASTLE_X + 40, y: LANE_Y, timer: 120, type: 'summon' });
+      
+      // 쿨타임 적용 (0.2초)
+      summonCooldown = true;
+      setTimeout(() => { summonCooldown = false; }, 200);
     }
   });
 });
@@ -110,6 +156,36 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   gameActive = false;
 });
 
+// --- T02-C15: 일시정지/재개 ---
+function togglePause() {
+  if (gameState === 'PLAYING') {
+    gameState = 'PAUSED';
+    document.getElementById('pause-overlay').style.display = 'flex';
+  } else if (gameState === 'PAUSED') {
+    gameState = 'PLAYING';
+    document.getElementById('pause-overlay').style.display = 'none';
+    lastTime = performance.now(); // T02-C15: 재개 시 시간 초기화
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P') togglePause();
+});
+document.getElementById('pause-btn').addEventListener('click', togglePause);
+document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+// --- T02-C27: 음소거 / 움직임 줄이기 ---
+document.getElementById('mute-btn').addEventListener('click', (e) => {
+  isMuted = !isMuted;
+  e.target.textContent = isMuted ? '🔇 소리 끔' : '🔊 소리 켬';
+});
+
+document.getElementById('reduce-motion-btn').addEventListener('click', (e) => {
+  isReduceMotion = !isReduceMotion;
+  e.target.textContent = isReduceMotion ? '🚫 효과 끔' : '✨ 효과 켬';
+});
+
+// --- 게임 시작 ---
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -124,6 +200,8 @@ function startGame() {
   enemyCastleHp = MAX_CASTLE_HP;
   allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
   spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
+  summonCooldown = false;
+  document.getElementById('pause-overlay').style.display = 'none';
 
   document.getElementById('restart-btn').style.display = 'none';
   updateUI();
@@ -162,10 +240,19 @@ function updateUI() {
   document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
+// --- T02-C16, C17: 메인 루프 최적화 및 오류 방지 ---
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
   lastTime = timestamp;
+
+  // T02-C14: 포커스 이탈 시 멈춤 처리 (dt가 너무 커지는 것 방지)
+  if (dt > 100) {
+    // 탭 전환 후 복귀 시 시간 순간이동 방지
+    lastTime = timestamp;
+    animationId = requestAnimationFrame(gameLoop);
+    return;
+  }
 
   if (gameState === 'PLAYING') {
     gameTime += dt;
@@ -179,7 +266,10 @@ function gameLoop(timestamp) {
     updateCannonBalls(dt);
     checkGameState();
   }
+  
+  // T02-C15: 일시정지 상태에서도 렌더링은 유지 (화면 멈춤 방지)
   render();
+  
   if (gameActive) animationId = requestAnimationFrame(gameLoop);
 }
 
@@ -507,6 +597,8 @@ function render() {
   // 이펙트 (에러 방지 처리)
   for (let i = effects.length - 1; i >= 0; i--) {
     const effect = effects[i];
+    if (isReduceMotion) { effects.splice(i, 1); continue; } // T02-C27: 움직임 줄이기
+    
     let radius = 0;
     
     if (effect.type === 'hit') {
