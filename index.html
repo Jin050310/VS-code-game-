@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>팔라독 스타일 디펜스 - 영웅의 전장</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -43,7 +44,6 @@
 
   <!-- 3. 전투 화면 -->
   <div id="game-screen" style="display:none;">
-    <!-- 상단 UI -->
     <div id="ui-top">
       <div class="castle-ui-left">
         <span class="castle-label">🛡️ 내 성</span>
@@ -51,6 +51,9 @@
       </div>
       
       <div id="center-ui">
+        <div class="stage-info">
+          <span id="stage-level">스테이지 1 (Lv.1)</span>
+        </div>
         <div class="hero-info-badge">
           <img id="hero-avatar" src="hero_pantheon.png" alt="영웅" onerror="this.style.display='none'">
           <div>
@@ -69,30 +72,15 @@
       </div>
     </div>
 
-    <!-- 전장 캔버스 -->
     <canvas id="game-canvas"></canvas>
 
-    <!-- 하단 UI -->
     <div id="ui-bottom">
       <div id="skill-panel">
-        <button class="summon-btn" data-index="0">
-          <span class="cost">30</span>
-          <div class="summon-thumb"><img src="soldier.png" alt="유닛 1" onerror="this.style.display='none'"></div>
-          <span class="unit-name">유닛 1</span>
-        </button>
-        <button class="summon-btn" data-index="1">
-          <span class="cost">50</span>
-          <div class="summon-thumb"><img src="soldier.png" alt="유닛 2" onerror="this.style.display='none'"></div>
-          <span class="unit-name">유닛 2</span>
-        </button>
-        <button class="summon-btn" data-index="2">
-          <span class="cost">70</span>
-          <div class="summon-thumb"><img src="soldier.png" alt="유닛 3" onerror="this.style.display='none'"></div>
-          <span class="unit-name">유닛 3</span>
-        </button>
+        <button class="summon-btn" data-index="0"><span class="cost">30</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 1</span></button>
+        <button class="summon-btn" data-index="1"><span class="cost">50</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 2</span></button>
+        <button class="summon-btn" data-index="2"><span class="cost">70</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 3</span></button>
       </div>
       
-      <!-- 컨트롤 버튼 (일시정지, 음소거) -->
       <div id="control-panel">
         <button id="pause-btn">⏸️ 일시정지</button>
         <button id="mute-btn">🔊 소리 켬</button>
@@ -102,7 +90,6 @@
       <button id="restart-btn" style="display:none;">다시 시작</button>
     </div>
     
-    <!-- 일시정지 오버레이 -->
     <div id="pause-overlay" style="display:none;">
       <h1>⏸️ 일시정지</h1>
       <p>P키를 누르거나 아래 버튼을 눌러 재개하세요.</p>
