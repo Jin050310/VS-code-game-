@@ -10,10 +10,7 @@ function resizeCanvas() {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 }
-window.addEventListener('resize', () => {
-  resizeCanvas();
-  // T02-C13: 창 크기 변경 뒤 게임 상태 유지 (캔버스 크기만 재조정)
-});
+window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // 🖼️ 이미지 로드
@@ -62,6 +59,11 @@ let gameState = 'PLAYING'; // 'PLAYING', 'PAUSED', 'DEFEAT', 'VICTORY'
 let gameTime = 0;
 const BOSS_SPAWN_TIME = 25000;
 
+// ⭐️ T02-C07: 스테이지 및 레벨 변수
+let currentStage = 1;
+let currentLevel = 1;
+const MAX_STAGE = 10; // 최대 스테이지
+
 let allies = [];
 let enemies = [];
 let projectiles = [];
@@ -74,45 +76,13 @@ let bossActive = false;
 let boss = null;
 let bossWarningTimer = 0;
 
-// T02-C12: 연타 방지 (쿨타임) 변수
 let summonCooldown = false;
 
-// T02-C27: 효과 설정 변수
 let isMuted = false;
 let isReduceMotion = false;
 
 const PLAYER_CASTLE_X = 120;
 const ENEMY_CASTLE_X = 120;
-
-// --- T02-C22 ~ C25: localStorage 저장/불러오기 및 예외 처리 ---
-const STORAGE_KEY = 'paladog_game_records';
-
-function loadRecords() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return { maxLevel: 0, lastHero: 'pantheon' }; // T02-C24: 빈 저장값 기본값
-    const parsed = JSON.parse(data);
-    // T02-C25: 손상된 저장값 기본값
-    if (typeof parsed.maxLevel !== 'number' || !heroData[parsed.lastHero]) {
-      return { maxLevel: 0, lastHero: 'pantheon' };
-    }
-    return parsed;
-  } catch (e) {
-    return { maxLevel: 0, lastHero: 'pantheon' }; // T02-C25: 예외 발생 시 기본값
-  }
-}
-
-function saveRecord(level) {
-  try {
-    const records = loadRecords();
-    if (level > records.maxLevel) {
-      records.maxLevel = level;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    }
-  } catch (e) {
-    console.warn('저장 실패:', e);
-  }
-}
 
 // --- 화면 전환 ---
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -127,7 +97,7 @@ document.querySelectorAll('.hero-card').forEach(card => {
   });
 });
 
-// T02-C12: 소환 버튼 연타 방지 로직
+// ⭐️ T02-C12: 소환 버튼 연타 방지 (쿨타임 0.2초)
 document.querySelectorAll('.summon-btn').forEach((btn, index) => {
   btn.addEventListener('click', () => {
     if (!gameActive || gameState !== 'PLAYING' || summonCooldown) return;
@@ -143,7 +113,6 @@ document.querySelectorAll('.summon-btn').forEach((btn, index) => {
       });
       effects.push({ x: PLAYER_CASTLE_X + 40, y: LANE_Y, timer: 120, type: 'summon' });
       
-      // 쿨타임 적용 (0.2초)
       summonCooldown = true;
       setTimeout(() => { summonCooldown = false; }, 200);
     }
@@ -164,7 +133,7 @@ function togglePause() {
   } else if (gameState === 'PAUSED') {
     gameState = 'PLAYING';
     document.getElementById('pause-overlay').style.display = 'none';
-    lastTime = performance.now(); // T02-C15: 재개 시 시간 초기화
+    lastTime = performance.now();
   }
 }
 
@@ -185,7 +154,7 @@ document.getElementById('reduce-motion-btn').addEventListener('click', (e) => {
   e.target.textContent = isReduceMotion ? '🚫 효과 끔' : '✨ 효과 켬';
 });
 
-// --- 게임 시작 ---
+// --- 게임 시작 (초기화) ---
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -196,8 +165,13 @@ function startGame() {
   gameActive = true;
   gameState = 'PLAYING';
   mana = 0;
+  
+  // ⭐️ 게임 시작 시 스테이지 및 레벨 초기화
+  currentStage = 1;
+  currentLevel = 1;
   playerCastleHp = MAX_CASTLE_HP;
   enemyCastleHp = MAX_CASTLE_HP;
+  
   allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
   spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
   summonCooldown = false;
@@ -205,6 +179,7 @@ function startGame() {
 
   document.getElementById('restart-btn').style.display = 'none';
   updateUI();
+  updateStageUI();
 
   const buttons = document.querySelectorAll('.summon-btn');
   const stats = minionStats[heroType];
@@ -240,15 +215,18 @@ function updateUI() {
   document.getElementById('enemy-castle-hp').style.width = `${Math.max(0, enemyCastleHp / MAX_CASTLE_HP) * 100}%`;
 }
 
-// --- T02-C16, C17: 메인 루프 최적화 및 오류 방지 ---
+// ⭐️ T02-C07: 스테이지 UI 업데이트
+function updateStageUI() {
+  document.getElementById('stage-level').textContent = `스테이지 ${currentStage} (Lv.${currentLevel})`;
+}
+
+// --- T02-C16, C17: 메인 루프 ---
 function gameLoop(timestamp) {
   if (!gameActive) return;
   const dt = timestamp - lastTime;
   lastTime = timestamp;
 
-  // T02-C14: 포커스 이탈 시 멈춤 처리 (dt가 너무 커지는 것 방지)
   if (dt > 100) {
-    // 탭 전환 후 복귀 시 시간 순간이동 방지
     lastTime = timestamp;
     animationId = requestAnimationFrame(gameLoop);
     return;
@@ -267,20 +245,24 @@ function gameLoop(timestamp) {
     checkGameState();
   }
   
-  // T02-C15: 일시정지 상태에서도 렌더링은 유지 (화면 멈춤 방지)
   render();
   
   if (gameActive) animationId = requestAnimationFrame(gameLoop);
 }
 
+// ⭐️ T02-C07: 난이도 상승을 위한 스폰 시스템
 function spawnSystem(dt) {
   spawnTimer += dt;
   if (spawnTimer > 2500) {
     spawnTimer = 0;
-    const enemyHp = 100 + (gameTime / 1000) * 5;
+    // 난이도: 스테이지가 오를수록 적 체력/공격력 증가
+    const difficultyMultiplier = 1 + (currentStage - 1) * 0.3;
+    const enemyHp = (100 + (gameTime / 1000) * 5) * difficultyMultiplier;
+    const enemyAtk = 15 * difficultyMultiplier;
+    
     enemies.push({
       x: canvasWidth - ENEMY_CASTLE_X - 40, y: LANE_Y,
-      hp: enemyHp, maxHp: enemyHp, atk: 15, speed: 0.8,
+      hp: enemyHp, maxHp: enemyHp, atk: enemyAtk, speed: 0.8,
       range: 40, color: '#555', size: 26, type: 'melee',
       lastAttack: 0, isEnemy: true, attackTimer: 0
     });
@@ -288,9 +270,11 @@ function spawnSystem(dt) {
   if (gameTime > BOSS_SPAWN_TIME && !bossActive) {
     bossActive = true;
     bossWarningTimer = 180;
+    // 난이도: 보스도 스테이지에 따라 강해짐
+    const bossMultiplier = 1 + (currentStage - 1) * 0.5;
     boss = {
       x: canvasWidth - ENEMY_CASTLE_X - 60, y: LANE_Y,
-      hp: 4000, maxHp: 4000, atk: 60, speed: 0.45, range: 65, size: 60, color: '#8e44ad',
+      hp: 4000 * bossMultiplier, maxHp: 4000 * bossMultiplier, atk: 60 * bossMultiplier, speed: 0.45, range: 65, size: 60, color: '#8e44ad',
       lastAttack: 0, attackTimer: 0
     };
   }
@@ -301,6 +285,7 @@ function updateCannonBalls(dt) {
   if (castleCannonTimer > 2000) {
     let closestEnemy = enemies.find(e => e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400);
     if (!closestEnemy && bossActive && boss && boss.x > PLAYER_CASTLE_X && boss.x < PLAYER_CASTLE_X + 400) closestEnemy = boss;
+    
     if (closestEnemy) {
       castleCannonTimer = 0;
       cannonBalls.push({ x: PLAYER_CASTLE_X, y: LANE_Y - 40, target: closestEnemy, speed: 15, atk: 50, color: '#f1c40f' });
@@ -430,6 +415,7 @@ function updateProjectiles(dt) {
   });
 }
 
+// ⭐️ T02-C07: 스테이지 및 레벨업 처리
 function checkGameState() {
   if (gameState !== 'PLAYING') return;
   if (playerCastleHp <= 0) {
@@ -440,8 +426,26 @@ function checkGameState() {
   } else if (enemyCastleHp <= 0) {
     enemyCastleHp = 0;
     updateUI();
-    gameState = 'VICTORY';
-    showEndScreen('승리! 적의 성을 파괴했습니다!');
+    
+    // 승리 시 스테이지 및 레벨 증가
+    if (currentStage < MAX_STAGE) {
+      currentStage++;
+      currentLevel++;
+      // 난이도 상승을 위해 체력 회복 및 게임 시간 초기화
+      playerCastleHp = MAX_CASTLE_HP;
+      enemyCastleHp = MAX_CASTLE_HP;
+      gameTime = 0;
+      bossActive = false;
+      boss = null;
+      allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
+      
+      updateStageUI();
+      updateUI();
+      alert(`스테이지 ${currentStage}로 진입합니다! 난이도가 상승했습니다.`);
+    } else {
+      gameState = 'VICTORY';
+      showEndScreen('최종 승리! 모든 스테이지를 클리어했습니다!');
+    }
   }
 }
 
@@ -597,7 +601,7 @@ function render() {
   // 이펙트 (에러 방지 처리)
   for (let i = effects.length - 1; i >= 0; i--) {
     const effect = effects[i];
-    if (isReduceMotion) { effects.splice(i, 1); continue; } // T02-C27: 움직임 줄이기
+    if (isReduceMotion) { effects.splice(i, 1); continue; }
     
     let radius = 0;
     

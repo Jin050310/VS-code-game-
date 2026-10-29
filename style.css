@@ -81,7 +81,15 @@ h2 { font-size: 2.5rem; margin-bottom: 20px; text-shadow: 2px 2px 4px #000; colo
 .castle-hp-bar { width: 200px; height: 16px; background: #222; border: 1px solid #555; margin-top: 5px; border-radius: 8px; overflow: hidden; }
 #player-castle-hp, #enemy-castle-hp { height: 100%; transition: width 0.2s; border-radius: 6px; }
 
-#center-ui { text-align: center; display: flex; flex-direction: column; align-items: center; }
+#center-ui { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+
+/* ⭐️ 스테이지 UI */
+.stage-info {
+  font-size: 18px; font-weight: bold; color: #f1c40f;
+  text-shadow: 0 0 10px rgba(241, 196, 15, 0.8), 2px 2px 4px #000;
+  background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 20px; border: 1px solid #f1c40f;
+}
+
 .hero-info-badge {
   display: flex; align-items: center; gap: 10px;
   background: rgba(15, 20, 30, 0.85); padding: 6px 16px;
