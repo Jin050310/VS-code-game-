@@ -59,10 +59,9 @@ let gameState = 'PLAYING';
 let gameTime = 0;
 const BOSS_SPAWN_TIME = 25000;
 
-// ⭐️ 스테이지 및 레벨 변수
 let currentStage = 1;
 let currentLevel = 1;
-const MAX_STAGE = 5; // 최대 5스테이지
+const MAX_STAGE = 5;
 
 let allies = [];
 let enemies = [];
@@ -247,7 +246,6 @@ function gameLoop(timestamp) {
   if (gameActive) animationId = requestAnimationFrame(gameLoop);
 }
 
-// ⭐️ 난이도 상승 스폰
 function spawnSystem(dt) {
   spawnTimer += dt;
   if (spawnTimer > 2500) {
@@ -302,7 +300,6 @@ function updateUnits(dt) {
   const allyStopLine = canvasWidth - ENEMY_CASTLE_X - 60;
   const enemyStopLine = PLAYER_CASTLE_X + 60;
 
-  // 아군
   allies.forEach(ally => {
     let frontEnemy = null;
     enemies.forEach(enemy => { if (enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) frontEnemy = enemy; });
@@ -333,7 +330,6 @@ function updateUnits(dt) {
     }
   });
 
-  // 적군
   enemies.forEach(enemy => {
     let frontAlly = null;
     allies.forEach(ally => { if (ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
@@ -362,7 +358,6 @@ function updateUnits(dt) {
     }
   });
 
-  // 보스
   if (bossActive && boss && boss.hp > 0) {
     let frontAlly = null;
     allies.forEach(ally => { if (ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
@@ -409,7 +404,7 @@ function updateProjectiles(dt) {
   });
 }
 
-// ⭐️ 스테이지 처리 (alert 없이 쾌적하게)
+// ⭐️ 스테이지 처리
 function checkGameState() {
   if (gameState !== 'PLAYING') return;
 
@@ -459,6 +454,7 @@ function showEndScreen(msg) {
   ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
 }
 
+// ⭐️ 렌더링 함수
 function render() {
   if (backgroundImg.complete && backgroundImg.naturalWidth !== 0) {
     ctx.drawImage(backgroundImg, 0, 0, canvasWidth, canvasHeight);
@@ -663,8 +659,7 @@ function drawFallbackCastle(x, y, color) {
   ctx.fillRect(x - 40, y - 60, 80, 120);
   ctx.fillRect(x - 50, y - 90, 20, 50);
   ctx.fillRect(x + 30, y - 90, 20, 50);
-  ctx
-    ctx.fillStyle = '#111';
+  ctx.fillStyle = '#111';
   ctx.beginPath();
   ctx.arc(x, y + 40, 20, Math.PI, 0);
   ctx.fill();
