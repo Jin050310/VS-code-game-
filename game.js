@@ -13,7 +13,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 이미지 로드
+// 🖼️ 이미지 로드 (모두 같은 폴더에 있음)
 const soldierImg = new Image(); soldierImg.src = 'soldier.png'; soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
 const zombieImg = new Image(); zombieImg.src = 'zombie.png'; zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
 const mageImg = new Image(); mageImg.src = 'mage_unit.png'; mageImg.onerror = () => { mageImg.src = mageImg.src.includes('mage_unit.png') ? 'mage.png' : 'mage.png.png'; };
@@ -283,7 +283,7 @@ function updateUnits(dt) {
     } else if (enemy.x > enemyStopLine) {
       enemy.x -= enemy.speed * speedMultiplier;
     } else {
-      enemy.x = enemyStopLine; // 위치 고정
+      enemy.x = enemyStopLine;
       if (performance.now() - enemy.lastAttack > 1000) {
         enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
         playerCastleHp = Math.max(0, playerCastleHp - enemy.atk);
@@ -312,7 +312,7 @@ function updateUnits(dt) {
     } else if (boss.x > enemyStopLine) {
       boss.x -= boss.speed * speedMultiplier;
     } else {
-      boss.x = enemyStopLine; // 위치 고정
+      boss.x = enemyStopLine;
       if (performance.now() - boss.lastAttack > 1500) {
         boss.lastAttack = performance.now(); boss.attackTimer = 400;
         playerCastleHp = Math.max(0, playerCastleHp - boss.atk * 2);
@@ -504,7 +504,7 @@ function render() {
     }
   });
 
-  // 🚨 이펙트 (에러 원인 해결: 반지름이 0보다 작아지면 제거)
+  // 이펙트 (에러 방지 처리)
   for (let i = effects.length - 1; i >= 0; i--) {
     const effect = effects[i];
     let radius = 0;
@@ -526,7 +526,6 @@ function render() {
       continue;
     }
 
-    // 반지름이 음수가 되면 그리지 않고 배열에서 삭제
     if (radius > 0) {
       ctx.beginPath();
       ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
