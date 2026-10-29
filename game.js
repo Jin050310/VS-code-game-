@@ -2,26 +2,40 @@
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 let canvasWidth, canvasHeight;
-const LANE_Y = window.innerHeight * 0.65;
+let LANE_Y = window.innerHeight * 0.65;
 
 function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
   canvasWidth = window.innerWidth;
   canvasHeight = window.innerHeight;
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
+  canvas.width = Math.round(canvasWidth * dpr);
+  canvas.height = Math.round(canvasHeight * dpr);
+  canvas.style.width = canvasWidth + 'px';
+  canvas.style.height = canvasHeight + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  LANE_Y = canvasHeight * 0.65;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 🖼️ 이미지 로드
-const soldierImg = new Image(); soldierImg.src = 'soldier.png'; soldierImg.onerror = () => { soldierImg.src = 'soldier.png.png'; };
-const zombieImg = new Image(); zombieImg.src = 'zombie.png'; zombieImg.onerror = () => { zombieImg.src = 'zombie.png.png'; };
-const mageImg = new Image(); mageImg.src = 'mage_unit.png'; mageImg.onerror = () => { mageImg.src = mageImg.src.includes('mage_unit.png') ? 'mage.png' : 'mage.png.png'; };
-const archerImg = new Image(); archerImg.src = 'archer_unit.png'; archerImg.onerror = () => { archerImg.src = archerImg.src.includes('archer_unit.png') ? 'archer.png' : 'archer.png.png'; };
-const bossImg = new Image(); bossImg.src = 'boss.png'; bossImg.onerror = () => { bossImg.src = 'boss.png.png'; };
-const backgroundImg = new Image(); backgroundImg.src = 'battlefield_bg.png'; backgroundImg.onerror = () => { backgroundImg.src = backgroundImg.src.includes('battlefield_bg.png') ? 'background.png' : 'background.png.png'; };
-const castle1Img = new Image(); castle1Img.src = 'castle1.png'; castle1Img.onerror = () => { castle1Img.src = 'castle1.png.png'; };
-const castle2Img = new Image(); castle2Img.src = 'castle2.png'; castle2Img.onerror = () => { castle2Img.src = 'castle2.png.png'; };
+// 🖼️ 이미지 로드 (대체 이미지가 없거나 로드에 실패해도 무한 재시도하지 않음)
+function loadImage(primary, fallback) {
+  const img = new Image();
+  img.onerror = () => {
+    img.onerror = null;
+    if (fallback) img.src = fallback;
+  };
+  img.src = primary;
+  return img;
+}
+const soldierImg = loadImage('soldier.png');
+const zombieImg = loadImage('zombie.png');
+const mageImg = loadImage('mage_unit.png', 'mage.png');
+const archerImg = loadImage('archer_unit.png', 'hero_archer.png');
+const bossImg = loadImage('boss.png');
+const backgroundImg = loadImage('battlefield_bg.png', 'background.png');
+const castle1Img = loadImage('castle1.png');
+const castle2Img = loadImage('castle2.png');
 
 let heroType = '';
 const heroData = { pantheon: '판테온', mage: '마법사', archer: '궁수' };
@@ -70,7 +84,11 @@ let castleCannonTimer = 0;
 let bossActive = false;
 let boss = null;
 let bossWarningTimer = 0;
+let endMessage = '';
+let stageClearTimer = 0;
+const STAGE_CLEAR_DELAY = 2500;
 let summonCooldown = false;
+let gameSpeed = 1;
 let isMuted = false;
 let isReduceMotion = false;
 
@@ -117,6 +135,7 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 });
 
 function togglePause() {
+  if (!gameActive) return;
   if (gameState === 'PLAYING') {
     gameState = 'PAUSED';
     document.getElementById('pause-overlay').style.display = 'flex';
@@ -139,6 +158,15 @@ document.getElementById('reduce-motion-btn').addEventListener('click', (e) => {
   e.target.textContent = isReduceMotion ? '🚫 효과 끔' : '✨ 효과 켬';
 });
 
+const speedButtons = document.querySelectorAll('.speed-btn');
+function setGameSpeed(speed) {
+  gameSpeed = speed;
+  speedButtons.forEach(btn => btn.classList.toggle('active', Number(btn.dataset.speed) === speed));
+}
+speedButtons.forEach(btn => {
+  btn.addEventListener('click', () => setGameSpeed(Number(btn.dataset.speed)));
+});
+
 function startGame() {
   document.getElementById('select-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -155,7 +183,10 @@ function startGame() {
   enemyCastleHp = MAX_CASTLE_HP;
   allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
   spawnTimer = 0; castleCannonTimer = 0; bossActive = false; boss = null; bossWarningTimer = 0; gameTime = 0;
+  endMessage = '';
+  stageClearTimer = 0;
   summonCooldown = false;
+  setGameSpeed(1);
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('restart-btn').style.display = 'none';
   updateUI();
@@ -197,20 +228,26 @@ function updateStageUI() {
 
 function gameLoop(timestamp) {
   if (!gameActive) return;
-  const dt = timestamp - lastTime;
+  let dt = timestamp - lastTime;
   lastTime = timestamp;
+  if (!Number.isFinite(dt) || dt < 0) dt = 0;
+  dt = Math.min(dt, 100);
 
   if (gameState === 'PLAYING') {
-    gameTime += dt;
+    const step = dt * gameSpeed;
+    gameTime += step;
     if (mana < MAX_MANA) {
-      mana = Math.min(MAX_MANA, mana + 15 * (dt / 1000));
+      mana = Math.min(MAX_MANA, mana + 15 * (step / 1000));
       updateUI();
     }
-    spawnSystem(dt);
-    updateUnits(dt);
-    updateProjectiles(dt);
-    updateCannonBalls(dt);
+    spawnSystem(step);
+    updateUnits(step);
+    updateProjectiles(step);
+    updateCannonBalls(step);
     checkGameState();
+  } else if (gameState === 'STAGE_CLEAR') {
+    stageClearTimer -= dt;
+    if (stageClearTimer <= 0) advanceStage();
   }
   
   render();
@@ -244,23 +281,27 @@ function spawnSystem(dt) {
 function updateCannonBalls(dt) {
   castleCannonTimer += dt;
   if (castleCannonTimer > 2000) {
-    let closest = enemies.find(e => e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400);
-    if (!closest && bossActive && boss && boss.x > PLAYER_CASTLE_X && boss.x < PLAYER_CASTLE_X + 400) closest = boss;
+    let closest = null;
+    const inRange = e => e.hp > 0 && e.x > PLAYER_CASTLE_X && e.x < PLAYER_CASTLE_X + 400;
+    enemies.forEach(e => { if (inRange(e) && (!closest || e.x < closest.x)) closest = e; });
+    if (bossActive && boss && inRange(boss) && (!closest || boss.x < closest.x)) closest = boss;
     if (closest) {
       castleCannonTimer = 0;
       cannonBalls.push({ x: PLAYER_CASTLE_X, y: LANE_Y - 40, target: closest, speed: 15, atk: 50, color: '#f1c40f' });
     }
   }
   const speedMultiplier = dt / 16.67;
-  cannonBalls.forEach((cannon, i) => {
-    if (cannon.target.hp <= 0) { cannonBalls.splice(i, 1); return; }
-    if (cannon.x < cannon.target.x) cannon.x += cannon.speed * speedMultiplier;
-    else {
+  for (let i = cannonBalls.length - 1; i >= 0; i--) {
+    const cannon = cannonBalls[i];
+    if (!cannon.target || cannon.target.hp <= 0) { cannonBalls.splice(i, 1); continue; }
+    if (cannon.x < cannon.target.x) {
+      cannon.x += cannon.speed * speedMultiplier;
+    } else {
       cannon.target.hp -= cannon.atk;
       effects.push({ x: cannon.target.x, y: cannon.target.y, timer: 150, type: 'cannon' });
       cannonBalls.splice(i, 1);
     }
-  });
+  }
 }
 
 function updateUnits(dt) {
@@ -270,23 +311,23 @@ function updateUnits(dt) {
 
   allies.forEach(ally => {
     let frontEnemy = null;
-    enemies.forEach(enemy => { if (enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) frontEnemy = enemy; });
+    enemies.forEach(enemy => { if (enemy.hp > 0 && enemy.x > ally.x && (!frontEnemy || enemy.x < frontEnemy.x)) frontEnemy = enemy; });
     if (bossActive && boss && boss.hp > 0 && boss.x > ally.x) { if (!frontEnemy || boss.x < frontEnemy.x) frontEnemy = boss; }
     if (ally.attackTimer > 0) ally.attackTimer -= dt;
 
     if (frontEnemy) {
       if (frontEnemy.x - ally.x <= ally.range) {
-        if (performance.now() - ally.lastAttack > 800) {
-          ally.lastAttack = performance.now(); ally.attackTimer = 300;
+        if (gameTime - ally.lastAttack > 800) {
+          ally.lastAttack = gameTime; ally.attackTimer = 300;
           if (ally.type === 'ranged') projectiles.push({ x: ally.x + ally.size, y: ally.y - 10, target: frontEnemy, atk: ally.atk, speed: 13, color: ally.color, heroType: heroType });
-          else { frontEnemy.hp -= ally.atk; effects.push({ x: frontEnemy.x, y: frontEnemy.y - 15, timer: 100, type: 'hit' }); }
+          else if (frontEnemy.hp > 0) { frontEnemy.hp -= ally.atk; effects.push({ x: frontEnemy.x, y: frontEnemy.y - 15, timer: 100, type: 'hit' }); }
         }
       } else if (ally.x < allyStopLine) ally.x += ally.speed * speedMultiplier;
     } else if (ally.x < allyStopLine) {
       ally.x += ally.speed * speedMultiplier;
     } else {
-      if (performance.now() - ally.lastAttack > 1000) {
-        ally.lastAttack = performance.now(); ally.attackTimer = 300;
+      if (gameTime - ally.lastAttack > 1000) {
+        ally.lastAttack = gameTime; ally.attackTimer = 300;
         enemyCastleHp = Math.max(0, enemyCastleHp - ally.atk);
         effects.push({ x: canvasWidth - ENEMY_CASTLE_X, y: LANE_Y + (Math.random() * 40 - 20), timer: 100, type: 'hit' });
         updateUI();
@@ -296,14 +337,14 @@ function updateUnits(dt) {
 
   enemies.forEach(enemy => {
     let frontAlly = null;
-    allies.forEach(ally => { if (ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
+    allies.forEach(ally => { if (ally.hp > 0 && ally.x < enemy.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
     if (enemy.attackTimer > 0) enemy.attackTimer -= dt;
 
     if (frontAlly) {
       if (enemy.x - frontAlly.x <= enemy.range) {
-        if (performance.now() - enemy.lastAttack > 1000) {
-          enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
-          frontAlly.hp -= enemy.atk;
+        if (gameTime - enemy.lastAttack > 1000) {
+          enemy.lastAttack = gameTime; enemy.attackTimer = 300;
+          if (frontAlly.hp > 0) frontAlly.hp -= enemy.atk;
           effects.push({ x: frontAlly.x, y: frontAlly.y - 15, timer: 100, type: 'hit' });
         }
       } else if (enemy.x > enemyStopLine) {
@@ -313,8 +354,8 @@ function updateUnits(dt) {
       enemy.x -= enemy.speed * speedMultiplier;
     } else {
       enemy.x = enemyStopLine;
-      if (performance.now() - enemy.lastAttack > 1000) {
-        enemy.lastAttack = performance.now(); enemy.attackTimer = 300;
+      if (gameTime - enemy.lastAttack > 1000) {
+        enemy.lastAttack = gameTime; enemy.attackTimer = 300;
         playerCastleHp = Math.max(0, playerCastleHp - enemy.atk);
         effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
         updateUI();
@@ -324,14 +365,14 @@ function updateUnits(dt) {
 
   if (bossActive && boss && boss.hp > 0) {
     let frontAlly = null;
-    allies.forEach(ally => { if (ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
+    allies.forEach(ally => { if (ally.hp > 0 && ally.x < boss.x && (!frontAlly || ally.x > frontAlly.x)) frontAlly = ally; });
     if (boss.attackTimer > 0) boss.attackTimer -= dt;
 
     if (frontAlly) {
       if (boss.x - frontAlly.x <= boss.range) {
-        if (performance.now() - boss.lastAttack > 1200) {
-          boss.lastAttack = performance.now(); boss.attackTimer = 400;
-          frontAlly.hp -= boss.atk;
+        if (gameTime - boss.lastAttack > 1200) {
+          boss.lastAttack = gameTime; boss.attackTimer = 400;
+          if (frontAlly.hp > 0) frontAlly.hp -= boss.atk;
           effects.push({ x: frontAlly.x, y: frontAlly.y - 25, timer: 100, type: 'hit' });
         }
       } else if (boss.x > enemyStopLine) {
@@ -341,8 +382,8 @@ function updateUnits(dt) {
       boss.x -= boss.speed * speedMultiplier;
     } else {
       boss.x = enemyStopLine;
-      if (performance.now() - boss.lastAttack > 1500) {
-        boss.lastAttack = performance.now(); boss.attackTimer = 400;
+      if (gameTime - boss.lastAttack > 1500) {
+        boss.lastAttack = gameTime; boss.attackTimer = 400;
         playerCastleHp = Math.max(0, playerCastleHp - boss.atk * 2);
         effects.push({ x: PLAYER_CASTLE_X, y: LANE_Y, timer: 100, type: 'hit' });
         updateUI();
@@ -356,16 +397,17 @@ function updateUnits(dt) {
 // 👇 여기서 2부로 이어집니다.
 function updateProjectiles(dt) {
   const speedMultiplier = dt / 16.67;
-  projectiles.forEach((projectile, index) => {
-    if (projectile.target.hp <= 0) { projectiles.splice(index, 1); return; }
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const projectile = projectiles[i];
+    if (!projectile.target || projectile.target.hp <= 0) { projectiles.splice(i, 1); continue; }
     if (projectile.x < projectile.target.x) {
       projectile.x += projectile.speed * speedMultiplier;
     } else {
       projectile.target.hp -= projectile.atk;
       effects.push({ x: projectile.target.x, y: projectile.target.y - 15, timer: 100, type: 'hit' });
-      projectiles.splice(index, 1);
+      projectiles.splice(i, 1);
     }
-  });
+  }
 }
 
 function checkGameState() {
@@ -373,48 +415,91 @@ function checkGameState() {
 
   if (playerCastleHp <= 0) {
     playerCastleHp = 0;
-    updateUI();
     gameState = 'DEFEAT';
-    showEndScreen('패배... 내 성이 파괴되었습니다.');
+    endMessage = '내 성이 파괴되었습니다.';
+    updateUI();
+    showEndScreen();
     return;
   }
 
   if (enemyCastleHp <= 0) {
     enemyCastleHp = 0;
-    updateUI();
 
     if (currentStage < MAX_STAGE) {
-      currentStage++;
-      currentLevel++;
-      playerCastleHp = MAX_CASTLE_HP;
-      enemyCastleHp = MAX_CASTLE_HP;
-      gameTime = 0;
-      bossActive = false;
-      boss = null;
-      bossWarningTimer = 0;
-      allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
-      spawnTimer = 0; castleCannonTimer = 0;
-
-      updateStageUI();
+      gameState = 'STAGE_CLEAR';
+      stageClearTimer = STAGE_CLEAR_DELAY;
+      endMessage = `스테이지 ${currentStage} 클리어!`;
       updateUI();
-      
     } else {
       gameState = 'VICTORY';
-      showEndScreen('최종 승리! 모든 스테이지를 클리어했습니다!');
+      endMessage = '모든 스테이지를 클리어했습니다!';
+      updateUI();
+      showEndScreen();
     }
   }
 }
 
-function showEndScreen(msg) {
+function advanceStage() {
+  currentStage++;
+  currentLevel++;
+  playerCastleHp = MAX_CASTLE_HP;
+  enemyCastleHp = MAX_CASTLE_HP;
+  gameTime = 0;
+  bossActive = false;
+  boss = null;
+  bossWarningTimer = 0;
+  allies = []; enemies = []; projectiles = []; cannonBalls = []; effects = [];
+  spawnTimer = 0; castleCannonTimer = 0;
+  stageClearTimer = 0;
+  endMessage = '';
+  gameState = 'PLAYING';
+
+  updateStageUI();
+  updateUI();
+}
+
+function showEndScreen() {
   gameActive = false;
   document.getElementById('restart-btn').style.display = 'block';
   document.querySelectorAll('.summon-btn').forEach(btn => btn.disabled = true);
-  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+}
+
+function drawResultOverlay() {
+  const isWin = gameState === 'VICTORY' || gameState === 'STAGE_CLEAR';
+  const overlayAlpha = gameState === 'STAGE_CLEAR' ? 0.6 : 0.82;
+  const title = isWin ? 'VICTORY' : 'LOSE';
+  const titleColor = isWin ? '#f1c40f' : '#ff4757';
+  const titleSize = Math.max(48, Math.min(170, canvasWidth / 7));
+
+  ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  ctx.fillStyle = gameState === 'VICTORY' ? 'gold' : '#ff4757';
-  ctx.font = 'bold 50px Malgun Gothic';
+
   ctx.textAlign = 'center';
-  ctx.fillText(msg, canvasWidth / 2, canvasHeight / 2);
+  ctx.textBaseline = 'middle';
+
+  ctx.shadowColor = titleColor;
+  ctx.shadowBlur = 35;
+  ctx.fillStyle = titleColor;
+  ctx.font = `bold ${titleSize}px 'Arial Black', Malgun Gothic, sans-serif`;
+  ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - titleSize * 0.1);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${Math.max(16, Math.min(28, canvasWidth / 40))}px Malgun Gothic`;
+  ctx.fillText(endMessage, canvasWidth / 2, canvasHeight / 2 + titleSize * 0.6);
+
+  if (gameState === 'STAGE_CLEAR') {
+    const sec = Math.max(0, stageClearTimer / 1000);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.font = '16px Malgun Gothic';
+    ctx.fillText(`다음 스테이지까지 ${sec.toFixed(1)}초`, canvasWidth / 2, canvasHeight / 2 + titleSize * 0.6 + 40);
+  } else if (gameState === 'VICTORY' || gameState === 'DEFEAT') {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.font = '16px Malgun Gothic';
+    ctx.fillText('아래 "다시 시작" 버튼을 눌러 다시 도전하세요.', canvasWidth / 2, canvasHeight / 2 + titleSize * 0.6 + 40);
+  }
+
+  ctx.textBaseline = 'alphabetic';
 }
 
 function render() {
@@ -578,6 +663,10 @@ function render() {
       continue;
     }
     if (effect.timer <= 0) effects.splice(i, 1);
+  }
+
+  if (gameState === 'STAGE_CLEAR' || gameState === 'DEFEAT' || gameState === 'VICTORY') {
+    drawResultOverlay();
   }
 }
 

@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>팔라독 스타일 디펜스 - 영웅의 전장</title>
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+  <!-- 1. 시작 화면 -->
+  <div id="start-screen" class="screen">
+    <div class="title-content">
+      <h1>⚔️ 영웅의 전장 ⚔️</h1>
+      <p class="subtitle">내 성을 지키고 적의 성과 바이킹 보스를 격퇴하세요!</p>
+      <p class="subtitle" style="font-size: 1rem; margin-top: 10px;">조작법: 하단 버튼으로 유닛 소환 (P키: 일시정지)</p>
+      <button id="start-btn">게임 시작</button>
+    </div>
+  </div>
+
+  <!-- 2. 영웅 선택 화면 -->
+  <div id="select-screen" class="screen" style="display:none;">
+    <h2>영웅을 선택하세요</h2>
+    <div class="hero-container">
+      <div class="hero-card" data-hero="pantheon">
+        <div class="card-portrait"><img src="hero_pantheon.png" alt="판테온" onerror="this.style.display='none'"></div>
+        <h3>🔱 판테온</h3>
+        <p class="hero-role">근접 돌파형</p>
+        <p class="hero-desc">강력한 근접 보병 부대를 소환합니다.</p>
+      </div>
+      <div class="hero-card" data-hero="mage">
+        <div class="card-portrait"><img src="hero_mage.png" alt="마법사" onerror="this.style.display='none'"></div>
+        <h3>🔮 마법사</h3>
+        <p class="hero-role">원거리 마법형</p>
+        <p class="hero-desc">광역 비전 마법 유닛을 소환합니다.</p>
+      </div>
+      <div class="hero-card" data-hero="archer">
+        <div class="card-portrait"><img src="hero_archer.png" alt="궁수" onerror="this.style.display='none'"></div>
+        <h3>🏹 궁수</h3>
+        <p class="hero-role">고속 저격형</p>
+        <p class="hero-desc">원거리 고속 화살 유닛을 소환합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 전투 화면 -->
+  <div id="game-screen" style="display:none;">
+    <div id="ui-top">
+      <div class="castle-ui-left">
+        <span class="castle-label">🛡️ 내 성</span>
+        <div class="castle-hp-bar"><div id="player-castle-hp" style="width:100%; background:#3498db;"></div></div>
+      </div>
+      
+      <div id="center-ui">
+        <div class="stage-info">
+          <span id="stage-level">스테이지 1 (Lv.1)</span>
+        </div>
+        <div class="hero-info-badge">
+          <img id="hero-avatar" src="hero_pantheon.png" alt="영웅" onerror="this.style.display='none'">
+          <div>
+            <h2 id="hero-name">소환사: 판테온</h2>
+            <div id="mana-container">
+              <div id="mana-bar"></div>
+              <span id="mana-text">마나: 0/100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="castle-ui-right">
+        <span class="castle-label">💀 적 성</span>
+        <div class="castle-hp-bar"><div id="enemy-castle-hp" style="width:100%; background:#e74c3c;"></div></div>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-bottom">
+      <div id="skill-panel">
+        <button class="summon-btn" data-index="0"><span class="cost">30</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 1</span></button>
+        <button class="summon-btn" data-index="1"><span class="cost">50</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 2</span></button>
+        <button class="summon-btn" data-index="2"><span class="cost">70</span><div class="summon-thumb"><img src="soldier.png" onerror="this.style.display='none'"></div><span class="unit-name">유닛 3</span></button>
+      </div>
+      
+      <div id="control-panel">
+        <button id="pause-btn">⏸️ 일시정지</button>
+        <button id="mute-btn">🔊 소리 켬</button>
+        <button id="reduce-motion-btn">✨ 효과 켬</button>
+      </div>
+      
+      <button id="restart-btn" style="display:none;">다시 시작</button>
+    </div>
+    
+    <div id="speed-panel">
+      <span class="speed-label">배속</span>
+      <button class="speed-btn active" data-speed="1">1x</button>
+      <button class="speed-btn" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="3">3x</button>
+      <button class="speed-btn" data-speed="4">4x</button>
+      <button class="speed-btn" data-speed="5">5x</button>
+    </div>
+
+    <div id="pause-overlay" style="display:none;">
+      <h1>⏸️ 일시정지</h1>
+      <p>P키를 누르거나 아래 버튼을 눌러 재개하세요.</p>
+      <button id="resume-btn">재개하기</button>
+    </div>
+  </div>
+
+  <script src="game.js?v=4"></script>
+<script>window.addEventListener("load",function(){document.getElementById("start-btn").click();document.querySelector('.hero-card[data-hero="pantheon"]').click();});</script>
+</body>
+</html>

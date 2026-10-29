@@ -341,4 +341,9 @@ public class AssetExtractor {
 "@
 
 Add-Type -TypeDefinition $source -ReferencedAssemblies "System.Drawing"
-[AssetExtractor]::ExtractAll("D:\VS code(game)\Gemini_Generated_Image_26lei326lei326le.png", "D:\VS code(game)")
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sourceImage = Join-Path $scriptDir "Gemini_Generated_Image_26lei326lei326le.png"
+if (-not (Test-Path -LiteralPath $sourceImage)) {
+    throw "Source image not found: $sourceImage"
+}
+[AssetExtractor]::ExtractAll($sourceImage, $scriptDir)
