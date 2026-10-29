@@ -705,3 +705,31 @@ function drawHpBar(entity) {
   const hpPercent = Math.max(0, entity.hp / entity.maxHp);
   ctx.fillRect(x, y, barWidth * hpPercent, 6);
 }
+// ⭐️ 파일 끝에 닫히지 않은 함수들을 마무리합니다.
+function drawFallbackCastle(x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 40, y - 60, 80, 120);
+  ctx.fillRect(x - 50, y - 90, 20, 50);
+  ctx.fillRect(x + 30, y - 90, 20, 50);
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(x, y + 40, 20, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(x - 20, y + 40, 40, 20);
+}
+
+function drawHpBar(entity) {
+  const barWidth = entity.size * 2;
+  const x = entity.x - barWidth / 2;
+  const y = entity.y - 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.9)';
+  ctx.fillRect(x - 3, y - 3, barWidth + 6, 12);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(x, y, barWidth, 6);
+  ctx.fillStyle = entity.isEnemy ? '#e74c3c' : '#3498db';
+  const hpPercent = Math.max(0, entity.hp / entity.maxHp);
+  ctx.fillRect(x, y, barWidth * hpPercent, 6);
+}
+
+// ⭐️ 혹시 모를 에러를 막기 위한 빈 함수 (필요 없으면 지워도 됩니다)
+function updateUI() {}
